@@ -2,6 +2,14 @@ $import_file = "/mb/IndustryBestPractice/lmfao/output.csv"
 $csv = Import-Csv $import_file
 $csv = $csv | foreach-object {if ($_.direction -ne "RECEIVE") {$_.direction = "SEND"}; $_}
 
+# How to start docker to insert files
+<#
+sudo docker run --name neo4j -p7474:7474 -p7687:7687 -d -v /docker/neo4j/shared/data:/data -v /docker/neo4j/shared/logs:/logs -v /docker/neo4j/shared/import:/var/lib/neo4j/import -v /docker/neo4j/shared/plugins:/plugins --env NEO4J_AUTH=neo4j/test neo4j:latest
+sudo docker container neo4j start
+sudo docker container start neo4j:latest
+sudo docker container start neo4j
+#>
+
 $url = "http://127.0.0.1:7474"
 $credPair = "neo4j:test"
 $encodedCredentials = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($credPair))
