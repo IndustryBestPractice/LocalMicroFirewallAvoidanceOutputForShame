@@ -10,26 +10,6 @@ import (
 //"strconv"
 )
 
-type Firewall struct {
-    date    string
-    time    string
-    action  string
-    protocol    string
-    srcip  string
-    dstip  string
-    srcport    int
-    dstport    int
-    size    string
-    tcpflags    string
-    tcpsyn  string
-    tcpack  string
-    tcpwin  string
-    icmptype    string
-    icmpcode    string
-    info    string
-    path    string
-}
-
 func main() {
     // read data from CSV file
     csvFile, err := os.Open("./large_pfirewall.log")
@@ -38,20 +18,28 @@ func main() {
         fmt.Println(err)
     }
 
+    // Manually create CSV file!
+    //in := `# This is also a comment
+//first_name,last_name,username
+//# This is a comment
+//"Rob","Pike",rob
+//Ken,Thompson,ken
+//"Robert","Griesemer","gri"
+//`
+    //r := csv.NewReader(strings.NewReader(in))
+
     defer csvFile.Close()
 
     reader := csv.NewReader(csvFile)
 
     reader.Comma = ' ' // use space-delimited instead of comma
+    reader.Comment = '#' // use # as the comment character because WINDOWS GONNA WINDOW DAWG
 
     reader.FieldsPerRecord = -1
 
-    // The below is the original reader that we got from the website
-    //csvData, err := reader.ReadAll()
-    //if err != nil {
-    //    fmt.Println(err)
-    //    os.Exit(1)
-    //}
+    var data [][]string
+    //data = append(data, []string{"fname", "lname", "fullname"})
+    data = append(data, []string{"date","time","action","protocol","src-ip","dst-ip","src-port","dst-port","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
 
   for {
     record, err := reader.Read()
@@ -62,6 +50,11 @@ func main() {
       log.Fatal(err)
     }
 
-    fmt.Println(record)
+    //fmt.Println(record)
+    data = append(data,record)
   }
+
+    for i := 0; i < len(data); i++ {
+        fmt.Println(data[i])
+    }
 }
