@@ -1,4 +1,4 @@
-$import_file = "/mb/IndustryBestPractice/lmfao/output.csv"
+$import_file = "/home/pi/IndustryBestPractice/lmfao/LocalMicroFirewallAvoidanceOutput/output.csv"
 $csv = Import-Csv $import_file
 $csv = $csv | foreach-object {if ($_.direction -ne "RECEIVE") {$_.direction = "SEND"}; $_}
 
@@ -98,7 +98,8 @@ $csv | Where-Object {$_.src_ip -like "*.*" -and $_.dst_ip -like "*.*"} | Where-O
             $json_statement = @{"statements" = $statements}
             $retval = $json_statement | ConvertTo-Json
             
-            $response = Invoke-WebRequest -Uri "$($url)/db/data/transaction/commit" -Method Post -Headers $headers -Body $($retval)
+            #$response = Invoke-WebRequest -Uri "$($url)/db/data/transaction/commit" -Method Post -Headers $headers -Body $($retval)
+            write-host "$($retval)"
             $statements = @()
             $num++
         }
