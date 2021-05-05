@@ -85,7 +85,7 @@ func main() {
         // Start building the MERGE statement
         // MERGE (ipv4_10_20_72_186:ipv4 {ip:'10.20.72.186'})\n
         create.WriteString("{\"statement\": \"")
-        create.WriteString("MERGE (variablename:" + srcobjversion + " {ip:'" + rec[4] + "'})\n")
+        create.WriteString("MERGE (variablename:" + srcobjversion + " {ip:'" + rec[4] + "'})\"\n")
         // Add closing line to the statement
         create.WriteString("},")
 
@@ -93,7 +93,7 @@ func main() {
         // Start building the MERGE statement
         // MERGE (ipv4_10_20_72_186:ipv4 {ip:'10.20.72.186'})\n
         create.WriteString("{\"statement\": \"")
-        create.WriteString("MERGE (variablename:" + dstobjversion + " {ip:'" + rec[5] + "'})\n")
+        create.WriteString("MERGE (variablename:" + dstobjversion + " {ip:'" + rec[5] + "'})\"\n")
         // Add closing line to the statement
         create.WriteString("},")
 
@@ -181,4 +181,64 @@ func main() {
     relationships.WriteString("]}")
     //fmt.Println(create.String())
     //fmt.Println(relationships.String())
+
+    // Delete files if they already exist
+    err = os.Remove("/home/pi/IndustryBestPractice/lmfao/LocalMicroFirewallAvoidanceOutput/create_nodes.json")
+    if err != nil {
+        fmt.Println(err)
+    }
+
+    err = os.Remove("/home/pi/IndustryBestPractice/lmfao/LocalMicroFirewallAvoidanceOutput/create_relationships.json")
+    if err != nil {
+        fmt.Println(err)
+    }
+
+    // Create file system objects for the new files
+    node_file,err := os.Create("/home/pi/IndustryBestPractice/lmfao/LocalMicroFirewallAvoidanceOutput/create_nodes.json")
+    if err != nil {
+        fmt.Println(err)
+            node_file.Close()
+        //os.Exit(1)
+    }
+    relationship_file,err := os.Create("/home/pi/IndustryBestPractice/lmfao/LocalMicroFirewallAvoidanceOutput/create_relationships.json")
+    if err != nil {
+        fmt.Println(err)
+            relationship_file.Close()
+        //os.Exit(1)
+    }
+
+    // Now we write the files
+    fmt.Fprintln(node_file,create.String())
+
+    //for i := 0; i < len(create_data); i++ {
+    //    fmt.Println(create_data[i])
+    //    fmt.Fprintln(node_file,create_data[i])
+    //    if err != nil {
+    //        fmt.Println(err)
+    //        return
+    //    }
+    //}
+    err = node_file.Close()
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    fmt.Println("Created Node Create file!")
+    
+
+    fmt.Fprintln(relationship_file,relationships.String())
+    //for i := 0; i < len(relationships.String()); i++ {
+    //    //fmt.Println(relationships.String()[i])
+    //    fmt.Fprintln(relationship_file,relationships.String())
+    //    if err != nil {
+    //        fmt.Println(err)
+    //        return
+    //    }
+    //}
+    err = relationship_file.Close()
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    fmt.Println("Created Relationships file!")
 }

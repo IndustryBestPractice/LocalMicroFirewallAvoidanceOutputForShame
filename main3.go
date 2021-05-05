@@ -51,40 +51,9 @@ func main() {
     // Read all fields per record read
     reader.FieldsPerRecord = -1
 
-    // Create array variable called data
-    //var data [][]string
-
-    // Add the CSV header to the array variable we made
-    //data = append(data, []string{"date","time","action","protocol","src-ip","dst-ip","src-port","dst-port","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
-
-    // Foreach
-  //for {
-    // record line that we read from reader
-    //record, err := reader.Read()
-    //if err == io.EOF {
-    //  break
-    //}
-    //if err != nil {
-    //  log.Fatal(err)
-    //}
-
-    //fmt.Println(record)
-    // Append to the array we generated earlier
-    //data = append(data,record)
-  //}
-
-    // Print the records to the screen to verify it worked
-    //for i := 0; i < len(data); i++ {
-    //    fmt.Println(data[i])
-    //}    
-
     var pfw PFirewall
     var pfirewalls []PFirewall
 
-    // Just for giggles lets read the CSV file raw
-    //records, err := reader.ReadAll()
-
-    //for _, rec := range data {
     for {
         rec, err := reader.Read()
         if err == io.EOF {

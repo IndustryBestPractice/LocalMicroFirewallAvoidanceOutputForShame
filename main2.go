@@ -40,6 +40,8 @@ func main() {
     var data [][]string
     //data = append(data, []string{"fname", "lname", "fullname"})
     data = append(data, []string{"date","time","action","protocol","src-ip","dst-ip","src-port","dst-port","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+    // If we wanted to remove the header row, follow the below link
+    // https://github.com/ahmagdy/CSV-To-JSON-Converter/blob/master/main.go
 
   for {
     record, err := reader.Read()
