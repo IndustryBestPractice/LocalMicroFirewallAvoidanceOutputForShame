@@ -12,7 +12,7 @@ import (
 
 func main() {
     // Open CSV file
-    csvFile, err := os.Open("/home/pi/IndustryBestPractice/lmfao/LocalMicroFirewallAvoidanceOutput/large_pfirewall.log")
+    csvFile, err := os.Open("/data/large_pfirewall.log")
 
     if err != nil {
         fmt.Println(err)
@@ -53,7 +53,7 @@ func main() {
 
         // Write statement starter
         // "statement": "
-        relationships.WriteString("{\"statement\": \"")
+        //relationships.WriteString("{\"statement\": \"")
 
             // Define our global variables
             //var srcobjname string
@@ -124,7 +124,7 @@ func main() {
 
             //}]->(ipv4_10_20_72_186)\n
             relationships.WriteString("}]->(to)\n")
-            relationships.WriteString("return datatransfer")
+            relationships.WriteString("return datatransfer\"")
             relationships.WriteString("},")
         } else {
             // LETS DO RECEIVE!
@@ -153,7 +153,7 @@ func main() {
             //}]->(ipv4_10_20_72_186)\n
             // This is the new way
             relationships.WriteString("}]-(from)\n")
-            relationships.WriteString("return datatransfer")
+            relationships.WriteString("return datatransfer\"")
             relationships.WriteString("},")
         }
 
@@ -183,24 +183,24 @@ func main() {
     //fmt.Println(relationships.String())
 
     // Delete files if they already exist
-    err = os.Remove("/home/pi/IndustryBestPractice/lmfao/LocalMicroFirewallAvoidanceOutput/create_nodes.json")
+    err = os.Remove("/data/create_nodes.json")
     if err != nil {
         fmt.Println(err)
     }
 
-    err = os.Remove("/home/pi/IndustryBestPractice/lmfao/LocalMicroFirewallAvoidanceOutput/create_relationships.json")
+    err = os.Remove("/data/create_relationships.json")
     if err != nil {
         fmt.Println(err)
     }
 
     // Create file system objects for the new files
-    node_file,err := os.Create("/home/pi/IndustryBestPractice/lmfao/LocalMicroFirewallAvoidanceOutput/create_nodes.json")
+    node_file,err := os.Create("/data/create_nodes.json")
     if err != nil {
         fmt.Println(err)
             node_file.Close()
         //os.Exit(1)
     }
-    relationship_file,err := os.Create("/home/pi/IndustryBestPractice/lmfao/LocalMicroFirewallAvoidanceOutput/create_relationships.json")
+    relationship_file,err := os.Create("/data/create_relationships.json")
     if err != nil {
         fmt.Println(err)
             relationship_file.Close()
