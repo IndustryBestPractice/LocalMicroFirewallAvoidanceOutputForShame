@@ -15,6 +15,15 @@ CREATE
 $queries = @{}
 $queries['statements'] = @()
 
+$fname = "192.168.6.9"
+$query = "MERGE (variablename:ipv4 {ip:'$($fname)'})"
+$queries['statements'] += [ordered]@{'statement'="$($query)"}
+
+$fname = "192.168.6.81"
+$query = "MERGE (variablename:ipv4 {ip:'$($fname)'})"
+$queries['statements'] += [ordered]@{'statement'="$($query)"}
+
+<#
 $fname = "kevin"
 $lname = "roman"
 $query = "MERGE (test1:person { fname: `"$($fname)`", lname: `"$($lname)`" })"
@@ -35,6 +44,7 @@ $fname = "lauren"
 $lname = "salopek"
 $query = "MERGE (test4:person { fname: `"$($fname)`", lname: `"$($lname)`" })"
 $queries['statements'] += [ordered]@{'statement'="$($query)"}
+#>
 
 $retval = $queries| ConvertTo-Json
 
@@ -59,8 +69,22 @@ return from,to
 # create relationship between two existing nodes
 match (from:person {fname:"kevin", lname:"roman"})
 match (to:person {fname:"lauren", lname:"salopek"})
-CREATE (from)-[datatransfer:SENT {date:"2021-05-01 00:00:00.000", type:"ICMP", size:"291729"}]->(to)
+MERGE (from)-[datatransfer:SENT {date:"2021-05-01 00:00:00.000", type:"ICMP", size:"291729"}]->(to)
 return datatransfer
+
+# Load CSV file and create data that way
+# sudo docker run --rm --env NEO4J_AUTH=neo4j/test --name neo4j -p 7474:7474 -p 7473:7473 -p 7687:7687 -v ~/golang/data:/var/lib/neo4j/import/data -it neo4j
+# sudo docker run --rm --name golang -v /home/kroman/golang:/data -it golang
+LOAD CSV WITH HEADERS FROM 'file:///data/send_data.csv' AS row WITH row LIMIT 100
+LOAD CSV WITH HEADERS FROM 'file:///data/send_data.csv' AS row
+MERGE (from:ipv4 {ip: row.srcip})
+MERGE (tokr:ipv4 {ip: row.dstip})
+MERGE (from)-[datatransfer:SENT {date: row.date, type: row.action, size: row.size}]->(tokr)
+
+LOAD CSV WITH HEADERS FROM 'file:///data/receive_data.csv' AS row
+MERGE (from:ipv4 {ip: row.srcip})
+MERGE (tokr:ipv4 {ip: row.dstip})
+MERGE (from)<-[datatransfer:RECEIVED {date: row.date, type: row.action, size: row.size}]-(tokr)
 #>
 
 $url = "http://127.0.0.1:7474"
