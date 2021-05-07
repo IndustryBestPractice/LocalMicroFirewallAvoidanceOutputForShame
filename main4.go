@@ -9,9 +9,41 @@ import (
 "strings"
 )
 
+func create_files(datatype string,inputdataarray [][]string) {
+    // Delete files if they already exist
+    err := os.Remove("/data/" + datatype + "_data.csv")
+    if err != nil {
+        fmt.Println(err)
+    }
+
+    // Create file system objects for the new files
+    data_file,err := os.Create("/data/" + datatype + "_data.csv")
+    if err != nil {
+        fmt.Println(err)
+            data_file.Close()
+        //os.Exit(1)
+    }
+
+	// Write our files!
+	send_writer := csv.NewWriter(data_file)
+    defer send_writer.Flush()
+    for _, value := range inputdataarray {
+        err := send_writer.Write(value)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+    }
+	err = data_file.Close()
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+}
 
 func main() {
-    // Open CSV file
+    // read data from CSV file
+	// How to read windows firewall log: https://www.howtogeek.com/220204/how-to-track-firewall-activity-with-the-windows-firewall-log/
     csvFile, err := os.Open("/data/large_pfirewall.log")
 
     if err != nil {
@@ -20,143 +52,72 @@ func main() {
 
     defer csvFile.Close()
 
-    // Read CSV file
     reader := csv.NewReader(csvFile)
 
-    // Set delimeter to a space instead of a comma
-    reader.Comma = ' '
-    // Set comment to # sign because WINDOWS JUST GOTTA BE DIFFICULT LIKE THAT
-    reader.Comment = '#'
+    reader.Comma = ' ' // use space-delimited instead of comma
+    reader.Comment = '#' // use # as the comment character because WINDOWS GONNA WINDOW DAWG
 
-    // Read all fields per record read
     reader.FieldsPerRecord = -1
 
-    // Create variable to hold MERGE statements (create but with validation that it's unique)
-    // These are creating the 
-    var create strings.Builder
-    create.WriteString("{\"statements\": [")
+    var send_data [][]string
+	var receive_data [][]string
+	var forward_data [][]string
+	var unknown_data [][]string
+    //data = append(data, []string{"fname", "lname", "fullname"})
+    send_data = append(send_data, []string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+	receive_data = append(receive_data, []string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+	forward_data = append(forward_data, []string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+	unknown_data = append(unknown_data, []string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+    // If we wanted to remove the header row, follow the below link
+    // https://github.com/ahmagdy/CSV-To-JSON-Converter/blob/master/main.go
 
-    // Create variable to hold relationships statements
-    var relationships strings.Builder
-    relationships.WriteString("{\"statements\": [")
+  for {
+		rec, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
 
-    for {
-        rec, err := reader.Read()
+		//var srcobjname string
+		var srcobjversion string
+		//var dstobjname string
+		var dstobjversion string
 
-        // Do something with errors
-        if err == io.EOF {
-          break
-        }
-        if err != nil {
-          log.Fatal(err)
-        }
+		// Make src object  name
+		if strings.Contains(rec[4], ".") {
+			//srcobjname = strings.Replace(rec[4], ".", "_", -1)
+			srcobjversion = "ipv4"
+		} else {
+			//srcobjname = strings.Replace(rec[4], ":", "_", -1)
+			srcobjversion = "ipv6"
+		}
 
-        // Write statement starter
-        // "statement": "
-        //relationships.WriteString("{\"statement\": \"")
+		// Make dst object  name
+		if strings.Contains(rec[5], ".") {
+			//dstobjname = strings.Replace(rec[5], ".", "_", -1)
+			dstobjversion = "ipv4"
+		} else {
+			//dstobjname = strings.Replace(rec[5], ":", "_", -1)
+			dstobjversion = "ipv6"
+		}
 
-            // Define our global variables
-            //var srcobjname string
-            var srcobjversion string
-            //var dstobjname string
-            var dstobjversion string
-
-            // Make src object  name
-            if strings.Contains(rec[4], ".") {
-                //srcobjname = strings.Replace(rec[4], ".", "_", -1)
-                srcobjversion = "ipv4"
-            } else {
-                //srcobjname = strings.Replace(rec[4], ":", "_", -1)
-                srcobjversion = "ipv6"
-            }
-
-            // Make dst object  name
-            if strings.Contains(rec[5], ".") {
-                //dstobjname = strings.Replace(rec[5], ".", "_", -1)
-                dstobjversion = "ipv4"
-            } else {
-                //dstobjname = strings.Replace(rec[5], ":", "_", -1)
-                dstobjversion = "ipv6"
-            }
-
-        // Creating the IP objects here - regardless of if it's a SEND or RECEIVE
-            // we need both IP's to be created as their own objects anyways
-        // Now creating the SRCIP obj
-        // Start building the MERGE statement
-        // MERGE (ipv4_10_20_72_186:ipv4 {ip:'10.20.72.186'})\n
-        create.WriteString("{\"statement\": \"")
-        create.WriteString("MERGE (variablename:" + srcobjversion + " {ip:'" + rec[4] + "'})\"\n")
-        // Add closing line to the statement
-        create.WriteString("},")
-
-        // Now creating the DSTIP obj
-        // Start building the MERGE statement
-        // MERGE (ipv4_10_20_72_186:ipv4 {ip:'10.20.72.186'})\n
-        create.WriteString("{\"statement\": \"")
-        create.WriteString("MERGE (variablename:" + dstobjversion + " {ip:'" + rec[5] + "'})\"\n")
-        // Add closing line to the statement
-        create.WriteString("},")
-
+		// Path displays the direction of the communication. The options available are:
+		// SEND, RECEIVE, FORWARD, and UNKNOWN.
         // We build different statements for RECEIVE vs SEND et. al.
-        if rec[16] != "RECEIVE" {
-            // LETS DO SEND!
+		if rec[16] == "SEND" {
+			send_data = append(send_data, []string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+		} else if rec[16] == "RECEIVE" {
+			receive_data = append(receive_data, []string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+		} else if rec[16] == "FORWARD" {
+			forward_data = append(forward_data, []string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+		} else {
+			unknown_data = append(unknown_data, []string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+		}
 
-            // Now creating the actual meat and potatoes
-            relationships.WriteString("{\"statement\": \"")
-            relationships.WriteString("MATCH (from:" + srcobjversion + " {ip:'" + rec[4] + "'})")
-            relationships.WriteString("MATCH (to:" + dstobjversion + " {ip:'" + rec[5] + "'})")
-            relationships.WriteString("MERGE (from)-[datatransfer:SENT {")
-
-            //from_prt: ['3682'], \n
-            relationships.WriteString("local_prt: ['" + rec[6]  + "'],\n")
-
-            //to_prt: ['88'], \n
-            relationships.WriteString("remote_prt: ['" + rec[7] + "'],\n")
-
-            //protocol: ['UDP'], \n
-            relationships.WriteString("protocol: ['" + rec[3] + "'],\n")
-
-            //verdict: ['ALLOW'],\n
-            relationships.WriteString("verdict: ['" + rec[2] + "'],\n")
-
-            //datetime: ['2006-09-19 03:27:05']\n
-            relationships.WriteString("datetime: ['" + rec[0] + " " + rec[1] + "']\n")
-
-            //}]->(ipv4_10_20_72_186)\n
-            relationships.WriteString("}]->(to)\n")
-            relationships.WriteString("return datatransfer\"")
-            relationships.WriteString("},")
-        } else {
-            // LETS DO RECEIVE!
-
-            // Now creating the actual meat and potatoes
-            relationships.WriteString("{\"statement\": \"")
-            relationships.WriteString("MATCH (from:" + dstobjversion + " {ip:'" + rec[5] + "'})")
-            relationships.WriteString("MATCH (to:" + srcobjversion + " {ip:'" + rec[4] + "'})")
-            relationships.WriteString("MERGE (to)<-[datatransfer:RECEIVED {")
-
-            //from_prt: ['3682'], \n
-            relationships.WriteString("local_prt: ['" + rec[7]  + "'],\n")
-
-            //to_prt: ['88'], \n
-            relationships.WriteString("remote_prt: ['" + rec[6] + "'],\n")
-
-            //protocol: ['UDP'], \n
-            relationships.WriteString("protocol: ['" + rec[3] + "'],\n")
-
-            //verdict: ['ALLOW'],\n
-            relationships.WriteString("verdict: ['" + rec[2] + "'],\n")
-
-            //datetime: ['2006-09-19 03:27:05']\n
-            relationships.WriteString("datetime: ['" + rec[0] + " " + rec[1] + "']\n")
-
-            //}]->(ipv4_10_20_72_186)\n
-            // This is the new way
-            relationships.WriteString("}]-(from)\n")
-            relationships.WriteString("return datatransfer\"")
-            relationships.WriteString("},")
-        }
-
+    //fmt.Println(record)
+    //data = append(data,record)
         //pfw.Date = rec[0]
         //pfw.Time = rec[1]
         //pfw.Action = rec[2]
@@ -174,71 +135,18 @@ func main() {
         //pfw.Icmpcode = rec[14]
         //pfw.Info = rec[15]
         //pfw.Path = rec[16]
-    }
+  }
 
-    // Write the closing lines
-    create.WriteString("]}")
-    relationships.WriteString("]}")
-    //fmt.Println(create.String())
-    //fmt.Println(relationships.String())
+  	create_files("send", send_data)
+    fmt.Println("Created Send file!")
+	create_files("receive", receive_data)
+	fmt.Println("Created Receive file!")
+	create_files("forward", forward_data)
+	fmt.Println("Created Forward file!")
+	create_files("unknown", unknown_data)
+	fmt.Println("Created Unknown file!")
 
-    // Delete files if they already exist
-    err = os.Remove("/data/create_nodes.json")
-    if err != nil {
-        fmt.Println(err)
-    }
-
-    err = os.Remove("/data/create_relationships.json")
-    if err != nil {
-        fmt.Println(err)
-    }
-
-    // Create file system objects for the new files
-    node_file,err := os.Create("/data/create_nodes.json")
-    if err != nil {
-        fmt.Println(err)
-            node_file.Close()
-        //os.Exit(1)
-    }
-    relationship_file,err := os.Create("/data/create_relationships.json")
-    if err != nil {
-        fmt.Println(err)
-            relationship_file.Close()
-        //os.Exit(1)
-    }
-
-    // Now we write the files
-    fmt.Fprintln(node_file,create.String())
-
-    //for i := 0; i < len(create_data); i++ {
-    //    fmt.Println(create_data[i])
-    //    fmt.Fprintln(node_file,create_data[i])
-    //    if err != nil {
-    //        fmt.Println(err)
-    //        return
-    //    }
+    //for i := 0; i < len(send_data); i++ {
+    //    fmt.Println(send_data[i])
     //}
-    err = node_file.Close()
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-    fmt.Println("Created Node Create file!")
-    
-
-    fmt.Fprintln(relationship_file,relationships.String())
-    //for i := 0; i < len(relationships.String()); i++ {
-    //    //fmt.Println(relationships.String()[i])
-    //    fmt.Fprintln(relationship_file,relationships.String())
-    //    if err != nil {
-    //        fmt.Println(err)
-    //        return
-    //    }
-    //}
-    err = relationship_file.Close()
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-    fmt.Println("Created Relationships file!")
 }
