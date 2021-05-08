@@ -7,39 +7,8 @@ import (
 "log"
 "os"
 "strings"
+//"strconv"
 )
-
-func create_files(datatype string,inputdataarray [][]string) {
-    // Delete files if they already exist
-    err := os.Remove("/data/" + datatype + "_data.csv")
-    if err != nil {
-        fmt.Println(err)
-    }
-
-    // Create file system objects for the new files
-    data_file,err := os.Create("/data/" + datatype + "_data.csv")
-    if err != nil {
-        fmt.Println(err)
-            data_file.Close()
-        //os.Exit(1)
-    }
-
-	// Write our files!
-	send_writer := csv.NewWriter(data_file)
-    defer send_writer.Flush()
-    for _, value := range inputdataarray {
-        err := send_writer.Write(value)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-    }
-	err = data_file.Close()
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-}
 
 func main() {
     // read data from CSV file
@@ -71,8 +40,88 @@ func main() {
     // If we wanted to remove the header row, follow the below link
     // https://github.com/ahmagdy/CSV-To-JSON-Converter/blob/master/main.go
 
-  for {
-		rec, err := reader.Read()
+    // Delete files if they already exist
+	err = os.Remove("/data/send_data.csv")
+    if err != nil {
+        fmt.Println(err)
+    }
+	err = os.Remove("/data/receive_data.csv")
+    if err != nil {
+        fmt.Println(err)
+    }
+	err = os.Remove("/data/forward_data.csv")
+    if err != nil {
+        fmt.Println(err)
+    }
+	err = os.Remove("/data/unknown_data.csv")
+    if err != nil {
+        fmt.Println(err)
+    }
+
+	// Create file system objects for the new files
+	send_file,err := os.Create("/data/send_data.csv")
+	if err != nil {
+		fmt.Println(err)
+			send_file.Close()
+		//os.Exit(1)
+	}
+	receive_file,err := os.Create("/data/receive_data.csv")
+	if err != nil {
+		fmt.Println(err)
+			receive_file.Close()
+		//os.Exit(1)
+	}
+	forward_file,err := os.Create("/data/forward_data.csv")
+	if err != nil {
+		fmt.Println(err)
+			forward_file.Close()
+		//os.Exit(1)
+	}
+	unknown_file,err := os.Create("/data/unknown_data.csv")
+	if err != nil {
+		fmt.Println(err)
+			unknown_file.Close()
+		//os.Exit(1)
+	}
+
+	// Create file writer
+	send_writer := csv.NewWriter(send_file)
+	defer send_writer.Flush()
+	receive_writer := csv.NewWriter(receive_file)
+	defer receive_writer.Flush()
+	forward_writer := csv.NewWriter(forward_file)
+	defer forward_writer.Flush()
+	unknown_writer := csv.NewWriter(unknown_file)
+	defer unknown_writer.Flush()
+
+	err = send_writer.Write([]string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err = receive_writer.Write([]string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err = forward_writer.Write([]string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err = unknown_writer.Write([]string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	records, err := reader.ReadAll()
+
+  //for {
+	for i := 0; i < len(records); i++ {
+		//rec, err := reader.Read()
+		//fmt.Println("Checking line number: " + strconv.Itoa(i))
+		rec := records[i]
 		if err == io.EOF {
 			break
 		}
@@ -107,13 +156,32 @@ func main() {
 		// SEND, RECEIVE, FORWARD, and UNKNOWN.
         // We build different statements for RECEIVE vs SEND et. al.
 		if rec[16] == "SEND" {
-			send_data = append(send_data, []string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+			err := send_writer.Write([]string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		} else if rec[16] == "RECEIVE" {
-			receive_data = append(receive_data, []string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+			err := receive_writer.Write([]string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		} else if rec[16] == "FORWARD" {
-			forward_data = append(forward_data, []string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+			err := forward_writer.Write([]string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		} else {
-			unknown_data = append(unknown_data, []string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+			err := unknown_writer.Write([]string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+			fmt.Println("Hello")
+			fmt.Println([]string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+			fmt.Println("world!")
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		}
 
     //fmt.Println(record)
@@ -137,16 +205,17 @@ func main() {
         //pfw.Path = rec[16]
   }
 
-  	create_files("send", send_data)
+  	//send_file.Close()
     fmt.Println("Created Send file!")
-	create_files("receive", receive_data)
+	//receive_file.Close()
 	fmt.Println("Created Receive file!")
-	create_files("forward", forward_data)
+	//forward_file.Close()
 	fmt.Println("Created Forward file!")
-	create_files("unknown", unknown_data)
+	//unknown_file.Close()
 	fmt.Println("Created Unknown file!")
 
     //for i := 0; i < len(send_data); i++ {
     //    fmt.Println(send_data[i])
     //}
+	// NEW LINE
 }
