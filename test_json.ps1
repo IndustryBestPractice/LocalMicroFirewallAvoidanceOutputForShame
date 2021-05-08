@@ -88,14 +88,26 @@ $queries['statements'] = @()
 
 $query = "LOAD CSV WITH HEADERS FROM 'file:///data/send_data.csv' AS row
 MERGE (from:ipv4 {ip: row.srcip})
-MERGE (tokr:ipv4 {ip: row.dstip})
-MERGE (from)-[datatransfer:SENT {date: row.date, type: row.action, size: row.size}]->(tokr)"
+MERGE (to:ipv4 {ip: row.dstip})
+MERGE (from)-[datatransfer:SENT {date: row.date, type: row.action, size: row.size}]->(to)"
 $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
 $query = "LOAD CSV WITH HEADERS FROM 'file:///data/receive_data.csv' AS row
 MERGE (from:ipv4 {ip: row.srcip})
-MERGE (tokr:ipv4 {ip: row.dstip})
-MERGE (from)<-[datatransfer:RECEIVED {date: row.date, type: row.action, size: row.size}]-(tokr)"
+MERGE (to:ipv4 {ip: row.dstip})
+MERGE (from)<-[datatransfer:RECEIVED {date: row.date, type: row.action, size: row.size}]-(to)"
+$queries['statements'] += [ordered]@{'statement'="$($query)"}
+
+$query = "LOAD CSV WITH HEADERS FROM 'file:///data/forward_data.csv' AS row
+MERGE (from:ipv4 {ip: row.srcip})
+MERGE (to:ipv4 {ip: row.dstip})
+MERGE (from)<-[datatransfer:FORWARD {date: row.date, type: row.action, size: row.size}]-(to)"
+$queries['statements'] += [ordered]@{'statement'="$($query)"}
+
+$query = "LOAD CSV WITH HEADERS FROM 'file:///data/unknown_data.csv' AS row
+MERGE (from:ipv4 {ip: row.srcip})
+MERGE (to:ipv4 {ip: row.dstip})
+MERGE (from)<-[datatransfer:UNKNOWN {date: row.date, type: row.action, size: row.size}]-(to)"
 $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
 $retval = $queries| ConvertTo-Json
