@@ -26,24 +26,32 @@ func GetGUID() string {
 
 func main() {
 	// Get a list of all file in our data dir
-    files, err := ioutil.ReadDir("/data/")
+    files, err := ioutil.ReadDir("/data/go_input")
     if err != nil {
         log.Fatal(err)
     }
 
     for _, file := range files {
-		// Get UUID to identify this file
-		uuid := GetGUID()
-		
 		// We only want files that are pfirewall type - this is the WINDOWS parser after all...
 		if strings.Contains(file.Name(), "pfirewall") {
+			// Get UUID to identify this file
+			uuid := GetGUID()
+
+			// Move our file to the processing folder to show progresss
+			original_path := "/data/go_input/" + file.Name()
+			new_path := "/data/go_processing/" + uuid + "_" + file.Name()
+			err := os.Rename(original_path,new_path)
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			compname := strings.Split(file.Name(), "_")[0]
 			fmt.Println(file.Name(), compname, file.IsDir())
-			fmt.Println("Parsing file: " + file.Name())
+			fmt.Println("Parsing file: " + new_path)
 
 			// read data from CSV file
 			// How to read windows firewall log: https://www.howtogeek.com/220204/how-to-track-firewall-activity-with-the-windows-firewall-log/
-			csvFile, err := os.Open("/data/" + file.Name())
+			csvFile, err := os.Open(new_path)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -53,57 +61,47 @@ func main() {
 			reader.Comment = '#' // use # as the comment character because WINDOWS GONNA WINDOW DAWG
 			reader.FieldsPerRecord = -1
 
-			// Set variables that we'll populate later
-			var send_data [][]string
-			var receive_data [][]string
-			var forward_data [][]string
-			var unknown_data [][]string
-			// Set header rows
-			send_data = append(send_data, []string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
-			receive_data = append(receive_data, []string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
-			forward_data = append(forward_data, []string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
-			unknown_data = append(unknown_data, []string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
 			// If we wanted to remove the header row, follow the below link
 			// https://github.com/ahmagdy/CSV-To-JSON-Converter/blob/master/main.go
 
-			// Delete files if they already exist
-			err = os.Remove("/data/" + uuid + "_send_data.csv")
+			// Delete output files if they already exist
+			err = os.Remove("/data/go_output/" + uuid + "_send_data.csv")
 			if err != nil {
 				fmt.Println(err)
 			}
-			err = os.Remove("/data/" + uuid + "_receive_data.csv")
+			err = os.Remove("/data/go_output/" + uuid + "_receive_data.csv")
 			if err != nil {
 				fmt.Println(err)
 			}
-			err = os.Remove("/data/" + uuid + "_forward_data.csv")
+			err = os.Remove("/data/go_output/" + uuid + "_forward_data.csv")
 			if err != nil {
 				fmt.Println(err)
 			}
-			err = os.Remove("/data/" + uuid + "_unknown_data.csv")
+			err = os.Remove("/data/go_output/" + uuid + "_unknown_data.csv")
 			if err != nil {
 				fmt.Println(err)
 			}
 
 			// Create file system objects for the new files
-			send_file,err := os.Create("/data/" + uuid + "_send_data.csv")
+			send_file,err := os.Create("/data/go_output/" + uuid + "_send_data.csv")
 			if err != nil {
 				fmt.Println(err)
 					send_file.Close()
 				//os.Exit(1)
 			}
-			receive_file,err := os.Create("/data/" + uuid + "_receive_data.csv")
+			receive_file,err := os.Create("/data/go_output/" + uuid + "_receive_data.csv")
 			if err != nil {
 				fmt.Println(err)
 					receive_file.Close()
 				//os.Exit(1)
 			}
-			forward_file,err := os.Create("/data/" + uuid + "_forward_data.csv")
+			forward_file,err := os.Create("/data/go_output/" + uuid + "_forward_data.csv")
 			if err != nil {
 				fmt.Println(err)
 					forward_file.Close()
 				//os.Exit(1)
 			}
-			unknown_file,err := os.Create("/data/" + uuid + "_unknown_data.csv")
+			unknown_file,err := os.Create("/data/go_output/" + uuid + "_unknown_data.csv")
 			if err != nil {
 				fmt.Println(err)
 					unknown_file.Close()
@@ -240,6 +238,12 @@ func main() {
 			//for i := 0; i < len(send_data); i++ {
 			//    fmt.Println(send_data[i])
 			//}
+			csvFile.Close()
+			done_path := "/data/go_processed/" + uuid + "_" + file.Name()
+			err = os.Rename(new_path,done_path)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
     }
 }
