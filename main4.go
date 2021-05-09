@@ -9,7 +9,46 @@ import (
     "log"
 	"strings"
 	"math/rand"
+	"strconv"
 )
+
+func IsRFC1918(input_ip string) string {
+	// IPv6 Info: https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv6
+	//10.0.0.0 – 10.255.255.255 (10/8 prefix)
+	//172.16.0.0 – 172.31.255.255 (172.16/12 prefix)
+	//192.168.0.0 – 192.168.255.255 (192.168/16 prefix)
+	first_oct := strings.Split(input_ip, ".")[0]
+	second_oct := strings.Split(input_ip, ".")[1]
+	second_oct_str, err := strconv.Atoi(second_oct)
+	if err != nil {
+		fmt.Println(err)
+		//os.Exit(1)
+	}
+	//third_oct := strings.Split(input_ip, ".")[2]
+	//fourth_oct := strings.Split(input_ip, ".")[3]
+
+	var retval string
+
+	if first_oct == "10" {
+		retval = "true"
+	} else if first_oct == "172" {
+		if second_oct_str >= 16 && second_oct_str <= 31 {
+			retval = "true"
+		} else { 
+			retval = "false" 
+		}
+	} else if first_oct == "192" {
+		if second_oct == "168" {
+			retval = "true"
+		} else {
+			retval = "false"
+		}
+	} else {
+		retval = "false"
+	}
+
+	return retval
+}
 
 func GetGUID() string {
 	b := make([]byte, 16)
@@ -118,22 +157,22 @@ func main() {
 			unknown_writer := csv.NewWriter(unknown_file)
 			defer unknown_writer.Flush()
 
-			err = send_writer.Write([]string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+			err = send_writer.Write([]string{"srcipinternal","dstipinternal","srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-			err = receive_writer.Write([]string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+			err = receive_writer.Write([]string{"srcipinternal","dstipinternal","srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-			err = forward_writer.Write([]string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+			err = forward_writer.Write([]string{"srcipinternal","dstipinternal","srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-			err = unknown_writer.Write([]string{"srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
+			err = unknown_writer.Write([]string{"srcipinternal","dstipinternal","srcipver","dstipver","date","time","action","protocol","srcip","dstip","srcport","dstport","size","tcpflags","tcpsyn","tcpack","tcpwin","icmptype","icmpcode","info","path"})
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -157,48 +196,54 @@ func main() {
 				var srcobjversion string
 				//var dstobjname string
 				var dstobjversion string
+				var srcobjinternal string
+				var dstobjinternal string
 
 				// Make src object  name
 				if strings.Contains(rec[4], ".") {
 					//srcobjname = strings.Replace(rec[4], ".", "_", -1)
 					srcobjversion = "ipv4"
+					srcobjinternal = IsRFC1918(rec[4])
 				} else {
 					//srcobjname = strings.Replace(rec[4], ":", "_", -1)
 					srcobjversion = "ipv6"
+					srcobjinternal = "true"
 				}
 
 				// Make dst object  name
 				if strings.Contains(rec[5], ".") {
 					//dstobjname = strings.Replace(rec[5], ".", "_", -1)
 					dstobjversion = "ipv4"
+					dstobjinternal = IsRFC1918(rec[5])
 				} else {
 					//dstobjname = strings.Replace(rec[5], ":", "_", -1)
 					dstobjversion = "ipv6"
+					dstobjinternal = "true"
 				}
 
 				// Path displays the direction of the communication. The options available are:
 				// SEND, RECEIVE, FORWARD, and UNKNOWN.
 				// We build different statements for RECEIVE vs SEND et. al.
 				if rec[16] == "SEND" {
-					err := send_writer.Write([]string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+					err := send_writer.Write([]string{srcobjinternal,dstobjinternal,srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
 					if err != nil {
 						fmt.Println(err)
 						return
 					}
 				} else if rec[16] == "RECEIVE" {
-					err := receive_writer.Write([]string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+					err := receive_writer.Write([]string{srcobjinternal,dstobjinternal,srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
 					if err != nil {
 						fmt.Println(err)
 						return
 					}
 				} else if rec[16] == "FORWARD" {
-					err := forward_writer.Write([]string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+					err := forward_writer.Write([]string{srcobjinternal,dstobjinternal,srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
 					if err != nil {
 						fmt.Println(err)
 						return
 					}
 				} else {
-					err := unknown_writer.Write([]string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
+					err := unknown_writer.Write([]string{srcobjinternal,dstobjinternal,srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
 					//fmt.Println("Hello")
 					//fmt.Println([]string{srcobjversion,dstobjversion,rec[0],rec[1],rec[2],rec[3],rec[4],rec[5],rec[6],rec[7],rec[8],rec[9],rec[10],rec[11],rec[12],rec[13],rec[14],rec[15],rec[16]})
 					//fmt.Println("world!")

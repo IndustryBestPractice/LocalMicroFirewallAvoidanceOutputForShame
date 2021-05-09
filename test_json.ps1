@@ -84,26 +84,26 @@ foreach ($UUID in ($(Get-ChildItem "$($data)\go_output\*.csv" -File).name | ForE
         $queries['statements'] = @()
 
         $query = "LOAD CSV WITH HEADERS FROM 'file:///data/go_output/$($uuid)_send_data.csv' AS row
-        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver})
-        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver})
+        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver, internal: row.srcipinternal})
+        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver, internal: row.dstipinternal})
         MERGE (from)-[datatransfer:SENT {date: row.date, type: row.action, size: row.size}]->(to)"
         $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
         $query = "LOAD CSV WITH HEADERS FROM 'file:///data/go_output/$($uuid)_receive_data.csv' AS row
-        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver})
-        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver})
+        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver, internal: row.srcipinternal})
+        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver, internal: row.dstipinternal})
         MERGE (from)<-[datatransfer:RECEIVED {date: row.date, type: row.action, size: row.size}]-(to)"
         $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
         $query = "LOAD CSV WITH HEADERS FROM 'file:///data/go_output/$($uuid)_forward_data.csv' AS row
-        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver})
-        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver})
+        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver, internal: row.srcipinternal})
+        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver, internal: row.dstipinternal})
         MERGE (from)<-[datatransfer:FORWARD {date: row.date, type: row.action, size: row.size}]-(to)"
         $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
         $query = "LOAD CSV WITH HEADERS FROM 'file:///data/go_output/$($uuid)_unknown_data.csv' AS row
-        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver})
-        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver})
+        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver, internal: row.srcipinternal})
+        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver, internal: row.dstipinternal})
         MERGE (from)<-[datatransfer:UNKNOWN {date: row.date, type: row.action, size: row.size}]-(to)"
         $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
@@ -120,9 +120,15 @@ foreach ($UUID in ($(Get-ChildItem "$($data)\go_output\*.csv" -File).name | ForE
 
 $queries = @{}
 $queries['statements'] = @()
+
 $query = "match (n) where n.ipversion = 'ipv6' SET n :IPv6"
 $queries['statements'] += [ordered]@{'statement'="$($query)"}
 $query = "match (n) where n.ipversion = 'ipv4' SET n :IPv4"
+$queries['statements'] += [ordered]@{'statement'="$($query)"}
+
+$query = "match (n) where n.internal = 'true' SET n :InternalIP"
+$queries['statements'] += [ordered]@{'statement'="$($query)"}
+$query = "match (n) where n.internal = 'false' SET n :ExternalIP"
 $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
 $retval = $queries| ConvertTo-Json
