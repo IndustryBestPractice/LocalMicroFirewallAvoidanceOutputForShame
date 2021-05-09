@@ -32,13 +32,6 @@ $query = "MERGE (test4:person { fname: `"$($fname)`", lname: `"$($lname)`" })"
 $queries['statements'] += [ordered]@{'statement'="$($query)"}
 #>
 
-$fname = "lauren"
-$lname = "salopek"
-$query = "MERGE (test4:person { fname: `"$($fname)`", lname: `"$($lname)`" })"
-$queries['statements'] += [ordered]@{'statement'="$($query)"}
-
-$retval = $queries| ConvertTo-Json
-
 <#
 # Delete all nodes and relationships
 MATCH (n)
@@ -80,34 +73,56 @@ MERGE (tokr:ipv4 {ip: row.dstip})
 MERGE (from)<-[datatransfer:RECEIVED {date: row.date, type: row.action, size: row.size}]-(tokr)
 #>
 
+$data = "C:\users\kroman\Documents\golang\data"
+
 ###########################################
 # THIS WORKS TO CREATE ONE STATEMENT IN STATEMENTS
 ###########################################
+foreach ($UUID in ($(Get-ChildItem "$($data)\go_output\*.csv" -File).name | ForEach-Object {$_.split("_")[0]} | Sort-Object -Unique))
+    {
+        $queries = @{}
+        $queries['statements'] = @()
+
+        $query = "LOAD CSV WITH HEADERS FROM 'file:///data/go_output/$($uuid)_send_data.csv' AS row
+        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver})
+        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver})
+        MERGE (from)-[datatransfer:SENT {date: row.date, type: row.action, size: row.size}]->(to)"
+        $queries['statements'] += [ordered]@{'statement'="$($query)"}
+
+        $query = "LOAD CSV WITH HEADERS FROM 'file:///data/go_output/$($uuid)_receive_data.csv' AS row
+        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver})
+        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver})
+        MERGE (from)<-[datatransfer:RECEIVED {date: row.date, type: row.action, size: row.size}]-(to)"
+        $queries['statements'] += [ordered]@{'statement'="$($query)"}
+
+        $query = "LOAD CSV WITH HEADERS FROM 'file:///data/go_output/$($uuid)_forward_data.csv' AS row
+        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver})
+        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver})
+        MERGE (from)<-[datatransfer:FORWARD {date: row.date, type: row.action, size: row.size}]-(to)"
+        $queries['statements'] += [ordered]@{'statement'="$($query)"}
+
+        $query = "LOAD CSV WITH HEADERS FROM 'file:///data/go_output/$($uuid)_unknown_data.csv' AS row
+        MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver})
+        MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver})
+        MERGE (from)<-[datatransfer:UNKNOWN {date: row.date, type: row.action, size: row.size}]-(to)"
+        $queries['statements'] += [ordered]@{'statement'="$($query)"}
+
+        $retval = $queries| ConvertTo-Json
+
+        $url = "http://127.0.0.1:7474"
+        $credPair = "neo4j:test"
+        $encodedCredentials = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($credPair))
+        $headers = @{"Authorization"="Basic $encodedCredentials"; "Accept"="application/json; charset=UTF-8";"Content-Type"="application/json"}
+
+        $response = Invoke-WebRequest -Uri "$($url)/db/data/transaction/commit" -Method Post -Headers $headers -Body $($retval)
+        $response.content
+    }
+
 $queries = @{}
 $queries['statements'] = @()
-
-$query = "LOAD CSV WITH HEADERS FROM 'file:///data/send_data.csv' AS row
-MERGE (from:ipv4 {ip: row.srcip})
-MERGE (to:ipv4 {ip: row.dstip})
-MERGE (from)-[datatransfer:SENT {date: row.date, type: row.action, size: row.size}]->(to)"
+$query = "match (n) where n.ipversion = 'ipv6' SET n :IPv6"
 $queries['statements'] += [ordered]@{'statement'="$($query)"}
-
-$query = "LOAD CSV WITH HEADERS FROM 'file:///data/receive_data.csv' AS row
-MERGE (from:ipv4 {ip: row.srcip})
-MERGE (to:ipv4 {ip: row.dstip})
-MERGE (from)<-[datatransfer:RECEIVED {date: row.date, type: row.action, size: row.size}]-(to)"
-$queries['statements'] += [ordered]@{'statement'="$($query)"}
-
-$query = "LOAD CSV WITH HEADERS FROM 'file:///data/forward_data.csv' AS row
-MERGE (from:ipv4 {ip: row.srcip})
-MERGE (to:ipv4 {ip: row.dstip})
-MERGE (from)<-[datatransfer:FORWARD {date: row.date, type: row.action, size: row.size}]-(to)"
-$queries['statements'] += [ordered]@{'statement'="$($query)"}
-
-$query = "LOAD CSV WITH HEADERS FROM 'file:///data/unknown_data.csv' AS row
-MERGE (from:ipv4 {ip: row.srcip})
-MERGE (to:ipv4 {ip: row.dstip})
-MERGE (from)<-[datatransfer:UNKNOWN {date: row.date, type: row.action, size: row.size}]-(to)"
+$query = "match (n) where n.ipversion = 'ipv4' SET n :IPv4"
 $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
 $retval = $queries| ConvertTo-Json
