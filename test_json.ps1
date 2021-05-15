@@ -60,7 +60,9 @@ return datatransfer
 # https://neo4j.com/developer/guide-import-csv/
 # https://neo4j.com/blog/bulk-data-import-neo4j-3-0/
 # sudo docker run --rm --env NEO4J_AUTH=neo4j/test --name neo4j -p 7474:7474 -p 7473:7473 -p 7687:7687 -v ~/golang/data:/var/lib/neo4j/import/data -it neo4j
+# PWSH: cd C:\Users\kroman\Documents; docker run --rm --env NEO4J_AUTH=neo4j/test --name neo4j -p 7474:7474 -p 7473:7473 -p 7687:7687 -v $pwd/golang/data:/var/lib/neo4j/import/data -it neo4j
 # sudo docker run --rm --name golang -v /home/kroman/golang:/data -it golang
+# PWSH: cd C:\Users\kroman\Documents; docker run --rm --name golang -v $pwd/golang/data:/data -it golang
 # LOAD CSV WITH HEADERS FROM 'file:///data/send_data.csv' AS row WITH row LIMIT 100
 LOAD CSV WITH HEADERS FROM 'file:///data/send_data.csv' AS row
 MERGE (from:ipv4 {ip: row.srcip})
@@ -92,19 +94,19 @@ foreach ($UUID in ($(Get-ChildItem "$($data)\go_output\*.csv" -File).name | ForE
         $query = "LOAD CSV WITH HEADERS FROM 'file:///data/go_output/$($uuid)_receive_data.csv' AS row
         MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver, internal: row.srcipinternal})
         MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver, internal: row.dstipinternal})
-        MERGE (from)<-[datatransfer:RECEIVED {date: row.date, type: row.action, size: row.size}]-(to)"
+        MERGE (from)-[datatransfer:RECEIVED {date: row.date, type: row.action, size: row.size}]->(to)"
         $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
         $query = "LOAD CSV WITH HEADERS FROM 'file:///data/go_output/$($uuid)_forward_data.csv' AS row
         MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver, internal: row.srcipinternal})
         MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver, internal: row.dstipinternal})
-        MERGE (from)<-[datatransfer:FORWARD {date: row.date, type: row.action, size: row.size}]-(to)"
+        MERGE (from)-[datatransfer:FORWARD {date: row.date, type: row.action, size: row.size}]->(to)"
         $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
         $query = "LOAD CSV WITH HEADERS FROM 'file:///data/go_output/$($uuid)_unknown_data.csv' AS row
         MERGE (from:ipobj {ip: row.srcip, ipversion: row.srcipver, internal: row.srcipinternal})
         MERGE (to:ipobj {ip: row.dstip, ipversion: row.dstipver, internal: row.dstipinternal})
-        MERGE (from)<-[datatransfer:UNKNOWN {date: row.date, type: row.action, size: row.size}]-(to)"
+        MERGE (from)-[datatransfer:UNKNOWN {date: row.date, type: row.action, size: row.size}]->(to)"
         $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
         $retval = $queries| ConvertTo-Json
@@ -126,9 +128,9 @@ $queries['statements'] += [ordered]@{'statement'="$($query)"}
 $query = "match (n) where n.ipversion = 'ipv4' SET n :IPv4"
 $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
-$query = "match (n) where n.internal = 'true' SET n :InternalIP"
+$query = "match (n) where n.internal = 'true' SET n :InternalIP REMOVE n :ipobj"
 $queries['statements'] += [ordered]@{'statement'="$($query)"}
-$query = "match (n) where n.internal = 'false' SET n :ExternalIP"
+$query = "match (n) where n.internal = 'false' SET n :ExternalIP REMOVE n :ipobj"
 $queries['statements'] += [ordered]@{'statement'="$($query)"}
 
 $retval = $queries| ConvertTo-Json
@@ -140,3 +142,10 @@ $headers = @{"Authorization"="Basic $encodedCredentials"; "Accept"="application/
 
 $response = Invoke-WebRequest -Uri "$($url)/db/data/transaction/commit" -Method Post -Headers $headers -Body $($retval)
 $response.content
+
+<#
+# Return all relationships for a specific IP address
+# https://stackoverflow.com/questions/38423683/get-all-relationships-for-a-node-with-cypher
+MATCH (a:IPv4 {ip: '192.168.6.255'})-[r]-(b)
+RETURN r, a, b
+#>
