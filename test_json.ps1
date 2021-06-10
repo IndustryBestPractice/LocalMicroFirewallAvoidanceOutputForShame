@@ -75,6 +75,11 @@ MERGE (tokr:ipv4 {ip: row.dstip})
 MERGE (from)<-[datatransfer:RECEIVED {date: row.date, type: row.action, size: row.size}]-(tokr)
 #>
 
+<#
+neo4j admin in runningg docker container
+https://neo4j.com/docs/operations-manual/current/docker/operations/
+#>
+
 $data = "C:\users\kroman\Documents\golang\data"
 
 ###########################################
