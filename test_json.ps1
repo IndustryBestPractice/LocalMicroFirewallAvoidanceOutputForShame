@@ -78,6 +78,7 @@ MERGE (from)<-[datatransfer:RECEIVED {date: row.date, type: row.action, size: ro
 <#
 neo4j admin in runningg docker container
 https://neo4j.com/docs/operations-manual/current/docker/operations/
+https://neo4j.com/docs/operations-manual/current/tutorial/neo4j-admin-import/
 #>
 
 $data = "C:\users\kroman\Documents\golang\data"
