@@ -61,6 +61,7 @@ return datatransfer
 # https://neo4j.com/blog/bulk-data-import-neo4j-3-0/
 # sudo docker run --rm --env NEO4J_AUTH=neo4j/test --name neo4j -p 7474:7474 -p 7473:7473 -p 7687:7687 -v ~/golang/data:/var/lib/neo4j/import/data -it neo4j
 # PWSH: cd C:\Users\kroman\Documents; docker run --rm --env NEO4J_AUTH=neo4j/test --name neo4j -p 7474:7474 -p 7473:7473 -p 7687:7687 -v $pwd/golang/data:/var/lib/neo4j/import/data -it neo4j
+# PWSH: cd C:\Users\kroman\Documents; docker run --env NEO4J_AUTH=neo4j/test --name neo4j -p 7474:7474 -p 7473:7473 -p 7687:7687 -v $pwd/golang/data:/var/lib/neo4j/import/data -it neo4j
 # sudo docker run --rm --name golang -v /home/kroman/golang:/data -it golang
 # PWSH: cd C:\Users\kroman\Documents; docker run --rm --name golang -v $pwd/golang/data:/data -it golang
 # LOAD CSV WITH HEADERS FROM 'file:///data/send_data.csv' AS row WITH row LIMIT 100
