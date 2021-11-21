@@ -21,7 +21,7 @@ $javascript_nodes = $nodes | ConvertTo-Json
 $javascript_nodes = $($javascript_nodes[1..$($javascript_nodes.length - 2)] -join "").trim() -replace '"nodes":','var nodes ='
 
 
-# Generate nodes
+# Generate edges
 $edges = @{}
 $edges['edges'] = @()
 

@@ -1,6 +1,7 @@
 # How to test and develop
 
 # Step 1 - create the folder to house your firewall log files
+sudo mkdir /lmfao/powershell/data -p
 sudo mkdir /lmfao/golang/data -p
 sudo mkdir /lmfao/mariadb/data -p
 
@@ -10,7 +11,7 @@ sudo docker network create lmfao-network
 
 # Step 2.5  pull powershell
 sudo docker pull mcr.microsoft.com/powershell
-sudo docker run -it --rm --network lmfao-network --name powershell-console mcr.microsoft.com/powershell
+sudo docker run -it --rm --network lmfao-network -v /lmfao/powershell/data:/data --name powershell-console mcr.microsoft.com/powershell
 
 # Step 3 - pull the golang container, then start it while mounting the data dir
 sudo docker pull golang
@@ -63,3 +64,4 @@ create table transaction(
    index trans_search_dstport (dstport)
 );
 GRANT ALL PRIVILEGES ON lmfao TO 'lmfao-user';
+SYSTEM mysql -u 'lmfao-user' -p
