@@ -26,13 +26,14 @@ sudo docker run --name mariadb --rm --detach --network lmfao-network -v /lmfao/m
 #sudo docker run -it --network lmfao-network --name mariadb-console --rm mariadb mysql -hmariadb -ulmfao-user -p
 # PASSWORD TO USE ABOVE WHEN LOGGING IN IS my_cool_secret
 
-sudo docker run -it --network lmfao-network --name mariadb-console --rm mariadb mysql -hmariadb -uroot -p
+docker run -it --network lmfao-network -v /lmfao/mariadb/data:/data --name mariadb-console --rm mariadb mysql -hmariadb -uroot -p
 # PASSWORD TO USE ABOVE WHEN LOGGING IN IS my-secret-pw
 # to get shell access to the mariadb container to pull logs, etc run: docker exec -it mariadb bash
 
 # Step 5 - Create the database that we will be using
 CREATE DATABASE lmfao;
 use lmfao;
+# PASSWORD TO USE ABOVE WHEN LOGGING IN IS my-secret-pw
 create table ipv4(
    ipv4_id INT NOT NULL AUTO_INCREMENT,
    ipv4_address VARCHAR(100) NOT NULL,
@@ -63,5 +64,35 @@ create table transaction(
    index trans_search_ports (srcport, dstport),
    index trans_search_dstport (dstport)
 );
+create table stage_incoming(
+srcipinternal BOOL NOT NULL,
+dstipinternal BOOL NOT NULL,
+srcipver VARCHAR(4) NOT NULL,
+dstipver VARCHAR(4) NOT NULL,
+date DATE NOT NULL,
+time TIME NOT NULL,
+action VARCHAR(20) NOT NULL,
+protocol VARCHAR(3) NOT NULL,
+srcip VARCHAR(100) NOT NULL,
+dstip VARCHAR(100) NOT NULL,
+srcport INT NOT NULL,
+dstport INT NOT NULL,
+size INT NOT NULL,
+tcpflags VARCHAR(100) NOT NULL,
+tcpsyn VARCHAR(100) NOT NULL,
+tcpack VARCHAR(100) NOT NULL,
+tcpwin VARCHAR(100) NOT NULL,
+icmptype VARCHAR(100) NOT NULL,
+icmpcode VARCHAR(100) NOT NULL,
+info VARCHAR(100) NOT NULL,
+path VARCHAR(100) NOT NULL
+);
 GRANT ALL PRIVILEGES ON lmfao TO 'lmfao-user';
 SYSTEM mysql -u 'lmfao-user' -p
+
+# https://stackoverflow.com/questions/58576129/importing-csv-file-into-mysql-docker-container
+LOAD DATA LOCAL INFILE '/data/52fdfc07-2182-654f-163f-5f0f9a621d72_send_data.csv' 
+INTO TABLE stage_incoming
+FIELDS TERMINATED BY ',' 
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;

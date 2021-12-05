@@ -30,21 +30,21 @@ func IsRFC1918(input_ip string) string {
 	var retval string
 
 	if first_oct == "10" {
-		retval = "true"
+		retval = "1"
 	} else if first_oct == "172" {
 		if second_oct_str >= 16 && second_oct_str <= 31 {
-			retval = "true"
+			retval = "1"
 		} else { 
-			retval = "false" 
+			retval = "0"
 		}
 	} else if first_oct == "192" {
 		if second_oct == "168" {
-			retval = "true"
+			retval = "1"
 		} else {
-			retval = "false"
+			retval = "0"
 		}
 	} else {
-		retval = "false"
+		retval = "1"
 	}
 
 	return retval
