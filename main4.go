@@ -10,44 +10,26 @@ import (
 	"strings"
 	"math/rand"
 	"strconv"
+	"net"
 )
 
-func IsRFC1918(input_ip string) string {
-	// IPv6 Info: https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv6
-	//10.0.0.0 – 10.255.255.255 (10/8 prefix)
-	//172.16.0.0 – 172.31.255.255 (172.16/12 prefix)
-	//192.168.0.0 – 192.168.255.255 (192.168/16 prefix)
-	first_oct := strings.Split(input_ip, ".")[0]
-	second_oct := strings.Split(input_ip, ".")[1]
-	second_oct_str, err := strconv.Atoi(second_oct)
-	if err != nil {
-		fmt.Println(err)
-		//os.Exit(1)
+func isPrivateIP(input_ip string) string {
+	ip := net.ParseIP(input_ip)
+	//fmt.Println("Is IP loopback?: " + strconv.FormatBool(ip.IsLoopback()))
+	//fmt.Println("Is IP IsLinkLocalUnicast?: " + strconv.FormatBool(ip.IsLinkLocalUnicast()))
+	//fmt.Println("Is IP IsLinkLocalMulticast?: " + strconv.FormatBool(ip.IsLinkLocalMulticast()))
+	//"127.0.0.0/8",    // IPv4 loopback
+	//"10.0.0.0/8",     // RFC1918
+	//"172.16.0.0/12",  // RFC1918
+	//"192.168.0.0/16", // RFC1918
+	//"169.254.0.0/16", // RFC3927 link-local
+	//"::1/128",        // IPv6 loopback
+	//"fe80::/10",      // IPv6 link-local
+	//"fc00::/7",       // IPv6 unique local addr
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return "1"
 	}
-	//third_oct := strings.Split(input_ip, ".")[2]
-	//fourth_oct := strings.Split(input_ip, ".")[3]
-
-	var retval string
-
-	if first_oct == "10" {
-		retval = "1"
-	} else if first_oct == "172" {
-		if second_oct_str >= 16 && second_oct_str <= 31 {
-			retval = "1"
-		} else { 
-			retval = "0"
-		}
-	} else if first_oct == "192" {
-		if second_oct == "168" {
-			retval = "1"
-		} else {
-			retval = "0"
-		}
-	} else {
-		retval = "1"
-	}
-
-	return retval
+	return "0"
 }
 
 func GetGUID() string {
@@ -203,22 +185,24 @@ func main() {
 				if strings.Contains(rec[4], ".") {
 					//srcobjname = strings.Replace(rec[4], ".", "_", -1)
 					srcobjversion = "ipv4"
-					srcobjinternal = IsRFC1918(rec[4])
+					srcobjinternal = isPrivateIP(rec[4])
 				} else {
 					//srcobjname = strings.Replace(rec[4], ":", "_", -1)
 					srcobjversion = "ipv6"
-					srcobjinternal = "true"
+					//srcobjinternal = "true"
+					srcobjinternal = isPrivateIP(rec[4])
 				}
 
 				// Make dst object  name
 				if strings.Contains(rec[5], ".") {
 					//dstobjname = strings.Replace(rec[5], ".", "_", -1)
 					dstobjversion = "ipv4"
-					dstobjinternal = IsRFC1918(rec[5])
+					dstobjinternal = isPrivateIP(rec[5])
 				} else {
 					//dstobjname = strings.Replace(rec[5], ":", "_", -1)
 					dstobjversion = "ipv6"
-					dstobjinternal = "true"
+					//dstobjinternal = "true"
+					dstobjinternal = isPrivateIP(rec[5])
 				}
 
 				// Path displays the direction of the communication. The options available are:
