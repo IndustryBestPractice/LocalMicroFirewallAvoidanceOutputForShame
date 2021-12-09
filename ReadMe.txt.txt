@@ -34,23 +34,21 @@ docker run -it --network lmfao-network -v /lmfao/mariadb/data:/data --name maria
 CREATE DATABASE lmfao;
 use lmfao;
 # PASSWORD TO USE ABOVE WHEN LOGGING IN IS my-secret-pw
-create table ipv4(
-   ipv4_id INT NOT NULL AUTO_INCREMENT,
-   ipv4_address VARCHAR(100) NOT NULL,
-   rfc1918 bool NOT NULL,
-   PRIMARY KEY ( ipv4_id )
-);
-create table ipv6(
-   ipv6_id INT NOT NULL AUTO_INCREMENT,
-   ipv6_address VARCHAR(100) NOT NULL,
-   rfc1918 bool NOT NULL,
-   PRIMARY KEY ( ipv6_id )
+create table ip_address(
+   ip_id INT NOT NULL AUTO_INCREMENT,
+   ip_version VARCHAR(4) NOT NULL,
+   ip_address VARCHAR(100) NOT NULL,
+   is_local bool NOT NULL,
+   PRIMARY KEY ( ip_id ),
+   index ip_address_version_search (ip_version, ip_address, is_local),
+   index ip_address_search (ip_address)
 );
 create table transaction(
    trans_id INT NOT NULL AUTO_INCREMENT,
    src_ip_id INT NULL,
    dst_ip_id INT NULL,
-   datetime datetime NOT NULL,
+   date date NOT NULL,
+   time time NOT NULL,
    action VARCHAR(100) NOT NULL,
    protocol VARCHAR(100) NOT NULL,
    srcport VARCHAR(100) NOT NULL,
@@ -64,6 +62,7 @@ create table transaction(
    index trans_search_ports (srcport, dstport),
    index trans_search_dstport (dstport)
 );
+
 create table stage_incoming(
 srcipinternal BOOL NOT NULL,
 dstipinternal BOOL NOT NULL,
@@ -96,3 +95,37 @@ INTO TABLE stage_incoming
 FIELDS TERMINATED BY ',' 
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
+
+# Get unique addresses from staging table into ip_address table
+insert into ip_address (ip_version, ip_address, is_local) select unique a.ip_version, a.ip_address, a.is_local from (select srcipver as ip_version, srcip as ip_address, srcipinternal as is_local from stage_incoming UNION ALL select dstipver as ip_version, dstip as ip_address, dstipinternal as is_local from stage_incoming) a where a.ip_address not in (select ip_address from ip_address);
+
+# Get info for each interaction into the main transaction table
+insert into transaction (src_ip_id, dst_ip_id, date, time, action, protocol, srcport, dstport, path)
+select ia1.ip_id as src_ip_id , ia2.ip_id as dst_ip_id, si.date as date, si.time as time, si.action as action, si.protocol as protocol, si.srcport as srcport, si.dstport as dstport, si.path as path from stage_incoming si
+join ip_address ia1 on
+si.srcip = ia1.ip_address
+and si.srcipver = ia1.ip_version
+and si.srcipinternal = ia1.is_local
+join ip_address ia2 on
+si.dstip = ia2.ip_address
+and si.dstipver = ia2.ip_version
+and si.dstipinternal = ia2.is_local;
+
+# Query intelligable transaction data
+select
+ia1.ip_address as src_ip,
+ia2.ip_address as dst_ip,
+t.date,
+t.time,
+t.action,
+t.protocol,
+t.srcport,
+t.dstport,
+t.path
+from transaction t
+join ip_address ia1 on
+t.src_ip_id = ia1.ip_id
+join ip_address ia2 on
+t.dst_ip_id = ia2.ip_id
+order by date asc, time asc
+limit 1;
