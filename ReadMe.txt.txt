@@ -38,9 +38,11 @@ create table ip_address(
    ip_id INT NOT NULL AUTO_INCREMENT,
    ip_version VARCHAR(4) NOT NULL,
    ip_address VARCHAR(100) NOT NULL,
+   cidr INT NOT NULL DEFAULT 24,
    is_local bool NOT NULL,
    PRIMARY KEY ( ip_id ),
    index ip_address_version_search (ip_version, ip_address, is_local),
+   index ip_subnet_search (cidr),
    index ip_address_search (ip_address)
 );
 create table transaction(
@@ -97,7 +99,15 @@ LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
 
 # Get unique addresses from staging table into ip_address table
-insert into ip_address (ip_version, ip_address, is_local) select unique a.ip_version, a.ip_address, a.is_local from (select srcipver as ip_version, srcip as ip_address, srcipinternal as is_local from stage_incoming UNION ALL select dstipver as ip_version, dstip as ip_address, dstipinternal as is_local from stage_incoming) a where a.ip_address not in (select ip_address from ip_address);
+insert into ip_address (ip_version, ip_address, is_local) 
+select unique a.ip_version, a.ip_address, a.is_local from 
+(select srcipver as ip_version, srcip as ip_address, srcipinternal as is_local 
+from stage_incoming 
+UNION ALL 
+select dstipver as ip_version, dstip as ip_address, dstipinternal as is_local 
+from stage_incoming) a 
+where a.ip_address not in 
+(select ip_address from ip_address);
 
 # Get info for each interaction into the main transaction table
 insert into transaction (src_ip_id, dst_ip_id, date, time, action, protocol, srcport, dstport, path)
@@ -111,10 +121,20 @@ si.dstip = ia2.ip_address
 and si.dstipver = ia2.ip_version
 and si.dstipinternal = ia2.is_local;
 
+# Setting CIDR defaults
+update ip_address set cidr='8' where ip_address like '127.0.%' or ip_address like '10.0.%';
+update ip_address set cidr='12' where ip_address like '172.%' and substring(ip_address from 5 for 2) >= 16 and substring(ip_address from 5 for 2) <= 31 and is_local = 1;
+update ip_address set cidr='16' where ip_address like '192.168.%' or ip_address like '169.254.%';
+update ip_address set cidr='128' where ip_address like '::1%';
+update ip_address set cidr='10' where ip_address like'fe80::%';
+update ip_address set cidr='7' where ip_address like 'fc00::%';
+
 # Query intelligable transaction data
 select
 ia1.ip_address as src_ip,
+ia1.cidr as src_cidr,
 ia2.ip_address as dst_ip,
+ia2.cidr as dst_cidr,
 t.date,
 t.time,
 t.action,
@@ -128,4 +148,60 @@ t.src_ip_id = ia1.ip_id
 join ip_address ia2 on
 t.dst_ip_id = ia2.ip_id
 order by date asc, time asc
-limit 1;
+limit 3;
+# Add the below before the "order" statement for local -> local traffic
+where ia1.is_local = 1 and ia2.is_local = 1
+# below for local -> external traffic
+where ia1.is_local = 1 and ia2.is_local = 0
+# below for external -> internal traffic
+where ia1.is_local = 0 and ia2.is_local = 1
+
+# Create nodes by date
+select
+concat("[",
+group_concat(
+concat("{id: '",ia.ip_id,"',"),
+concat("label: '",ia.ip_address,"',"),
+concat("group: '",ia.cidr,"'}")
+)
+,"]"
+) as json
+from (select distinct src_ip_id as ip_id
+from transaction
+where date = '2020-10-14'
+union
+select distinct dst_ip_id as ip_id
+from transaction
+where date = '2020-10-14'
+) tbd
+join ip_address ia on
+ia.ip_id = tbd.ip_id;
+
+# To see the raw data above, not in JSON format:
+select
+ia.ip_id,
+ia.ip_address,
+ia.cidr
+from (select distinct src_ip_id as ip_id
+from transaction
+where date = '2020-10-14'
+union
+select distinct dst_ip_id as ip_id
+from transaction
+where date = '2020-10-14'
+) tbd
+join ip_address ia on
+ia.ip_id = tbd.ip_id;
+
+
+# Now we need to create the edges (i.e. the connections between the nodes on this date
+select
+concat("[",
+group_concat(
+concat("{from: '",t.src_ip_id,"',"),
+concat("to: '",t.dst_ip_id,"'}")
+)
+,"]"
+) as json
+from transaction t
+where date = '2020-10-14';
