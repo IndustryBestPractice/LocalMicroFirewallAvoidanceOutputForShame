@@ -205,3 +205,39 @@ concat("to: '",t.dst_ip_id,"'}")
 ) as json
 from transaction t
 where date = '2020-10-14';
+
+# in django, connect to SQL directly
+cd /usr/src/lmfao
+python3 manage.py shell
+from netvis.models import stage_incoming
+stage_incoming.objects.create(srcipinternal="1", dstipinternal="1", srcipver="ipv4", dstipver="ipv4", date='2021-12-12', time='00:00:00.000', action="ALLOWED", protocol='TCP', srcport='80', dstport='80', size='123', tcpflags='-', tcpsyn='-', tcpack='-', tcpwin='-', icmptype='-', info='-', path='SEND')
+# https://medium.com/@ksarthak4ever/django-models-and-shell-8c48963d83a3
+
+##########
+# PYTHON #
+##########
+import csv, datetime
+from netvis.models import stage_incoming
+
+start_time = datetime.datetime.now()
+
+file_path = 'ReplaceMe'
+with open(file_path, "r") as csv_file:
+    data = csv.reader(csv_file, delimiter=",")
+    # Skip the header row
+    next(data)
+    incoming_events = []
+    for row in data:
+        event = stage_incoming(srcipinternal=row[0],dstipinternal=row[1],srcipver=row[2],dstipver=row[3],date=row[4],time=row[5],action=row[6],protocol=row[7],srcip=row[8],dstip=row[9],srcport=row[10],dstport=row[11],size=row[12],tcpflags=[13],tcpsyn=[14],tcpack=[15],tcpwin=[16],icmptype=[17],icmpcode=[18],info=[19],path=[20])
+		incoming_events.append(event)
+    stage_incoming.objects.bulk_create(incoming_events)
+
+end_time = datetime.datetime.now()
+runtime = end_time - start_time
+#https://betterprogramming.pub/3-techniques-for-importing-large-csv-files-into-a-django-app-2b6e5e47dba0
+print("Loading CSV took: " + str(runtime) + ".")
+##########
+# PYTHON #
+##########
+
+cat load_csv.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/import_test.csv/g" | python3 manage.py shell
