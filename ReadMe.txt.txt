@@ -99,7 +99,7 @@ LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
 
 # Get unique addresses from staging table into ip_address table
-insert into ip_address (ip_version, ip_address, is_local) 
+insert into ip_address (ip_id=1, ip_version, ip_address, is_local) 
 select unique a.ip_version, a.ip_address, a.is_local from 
 (select srcipver as ip_version, srcip as ip_address, srcipinternal as is_local 
 from stage_incoming 
@@ -108,6 +108,8 @@ select dstipver as ip_version, dstip as ip_address, dstipinternal as is_local
 from stage_incoming) a 
 where a.ip_address not in 
 (select ip_address from ip_address);
+
+cursor.execute("select distinct a.ip_version, a.ip_address, a.is_local from (select srcipver as ip_version, srcip as ip_address, srcipinternal as is_local from netvis_stage_incoming UNION ALL select dstipver as ip_version, dstip as ip_address, dstipinternal as is_local from netvis_stage_incoming) a where a.ip_address not in (select ip_address from netvis_ip_address)")
 
 # Get info for each interaction into the main transaction table
 insert into transaction (src_ip_id, dst_ip_id, date, time, action, protocol, srcport, dstport, path)
@@ -239,5 +241,30 @@ print("Loading CSV took: " + str(runtime) + ".")
 ##########
 # PYTHON #
 ##########
+#django = 4.0
+#python3 = 3.9.9
 
 cat load_csv.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/import_test.csv/g" | python3 manage.py shell
+
+##########
+# PYTHON #
+##########
+import csv
+from netvis.models import stage_incoming, transaction, ip_address
+
+# Get all data from stage_incoming where the srcip isn't already in ip_address table
+src_query = stage_incoming.objects.only('srcipver', 'srcip', 'srcipinternal').exclude(srcip__in=ip_address.objects.only('ip_address').values_list('ip_address', flat=True))
+# Get all data from stage_incoming where the dstip isn't already in ip_address table
+dst_query = stage_incoming.objects.only('dstipver', 'dstip', 'dstipinternal').exclude(dstip__in=ip_address.objects.only('ip_address').values_list('ip_address', flat=True))
+
+# Create ip_address objects and add them to the arraylist
+ip_addresses = []
+for row in src_query.union(dst_query):
+    ip_addresses.append(ip_address(ip_version=row.srcipver,ip_address=row.srcip,is_local=row.srcipinternal))
+    ip_addresses.append(ip_address(ip_version=row.dstipver,ip_address=row.dstip,is_local=row.dstipinternal))
+
+# Bulk add what we have to the ip_address table
+ip_address.objects.bulk_create(ip_addresses)
+##########
+# PYTHON #
+##########
