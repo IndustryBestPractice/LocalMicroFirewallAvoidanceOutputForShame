@@ -109,8 +109,6 @@ from stage_incoming) a
 where a.ip_address not in 
 (select ip_address from ip_address);
 
-cursor.execute("select distinct a.ip_version, a.ip_address, a.is_local from (select srcipver as ip_version, srcip as ip_address, srcipinternal as is_local from netvis_stage_incoming UNION ALL select dstipver as ip_version, dstip as ip_address, dstipinternal as is_local from netvis_stage_incoming) a where a.ip_address not in (select ip_address from netvis_ip_address)")
-
 # Get info for each interaction into the main transaction table
 insert into transaction (src_ip_id, dst_ip_id, date, time, action, protocol, srcport, dstport, path)
 select ia1.ip_id as src_ip_id , ia2.ip_id as dst_ip_id, si.date as date, si.time as time, si.action as action, si.protocol as protocol, si.srcport as srcport, si.dstport as dstport, si.path as path from stage_incoming si
@@ -230,7 +228,7 @@ with open(file_path, "r") as csv_file:
     next(data)
     incoming_events = []
     for row in data:
-        event = stage_incoming(srcipinternal=row[0],dstipinternal=row[1],srcipver=row[2],dstipver=row[3],date=row[4],time=row[5],action=row[6],protocol=row[7],srcip=row[8],dstip=row[9],srcport=row[10],dstport=row[11],size=row[12],tcpflags=[13],tcpsyn=[14],tcpack=[15],tcpwin=[16],icmptype=[17],icmpcode=[18],info=[19],path=[20])
+        event = stage_incoming(srcipinternal=row[0],dstipinternal=row[1],srcipver=row[2],dstipver=row[3],date=row[4],time=row[5],action=row[6],protocol=row[7],srcip=row[8],dstip=row[9],srcport=row[10],dstport=row[11],size=row[12],tcpflags=row[13],tcpsyn=row[14],tcpack=row[15],tcpwin=row[16],icmptype=row[17],icmpcode=row[18],info=row[19],path=row[20])
 		incoming_events.append(event)
     stage_incoming.objects.bulk_create(incoming_events)
 
@@ -244,27 +242,71 @@ print("Loading CSV took: " + str(runtime) + ".")
 #django = 4.0
 #python3 = 3.9.9
 
-cat load_csv.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/import_test.csv/g" | python3 manage.py shell
+#####################
+# PYTHON - LOAD_CSV #
+#####################
+import csv, datetime, sys
+from netvis.models import stage_incoming
 
-##########
-# PYTHON #
-##########
-import csv
+start_time = datetime.datetime.now()
+
+file_path = 'ReplaceMe'
+with open(file_path, "r") as csv_file:
+    data = csv.reader(csv_file, delimiter=",")
+    # Skip the header row
+    next(data)
+    incoming_events = []
+    for row in data:
+        event = stage_incoming(srcipinternal=row[0],dstipinternal=row[1],srcipver=row[2],dstipver=row[3],date=row[4],time=row[5],action=row[6],protocol=row[7],srcip=row[8],dstip=row[9],srcport=row[10],dstport=row[11],size=row[12],tcpflags=row[13],tcpsyn=row[14],tcpack=row[15],tcpwin=row[16],icmptype=row[17],icmpcode=row[18],info=row[19],path=row[20])
+        incoming_events.append(event)
+    stage_incoming.objects.bulk_create(incoming_events)
+
+end_time = datetime.datetime.now()
+runtime = end_time - start_time
+#https://betterprogramming.pub/3-techniques-for-importing-large-csv-files-into-a-django-app-2b6e5e47dba0
+print("Loading CSV took: " + str(runtime) + ".")
+#####################
+# PYTHON - LOAD_CSV #
+#####################
+
+cat load_csv.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/send_data.csv/g" | python3 manage.py shell
+
+Number of unique entries added to stage_incoming table: 5367.
+Loading CSV took: 0:00:00.938269.
+
+##################################
+# PYTHON - LOAD IP_ADDRESS TABLE #
+##################################
+import datetime
 from netvis.models import stage_incoming, transaction, ip_address
 
+start_time = datetime.datetime.now()
+
 # Get all data from stage_incoming where the srcip isn't already in ip_address table
-src_query = stage_incoming.objects.only('srcipver', 'srcip', 'srcipinternal').exclude(srcip__in=ip_address.objects.only('ip_address').values_list('ip_address', flat=True))
+src_query = stage_incoming.objects.values('srcipver', 'srcip', 'srcipinternal').distinct().exclude(srcip__in=ip_address.objects.only('ip_address').values_list('ip_address', flat=True))
 # Get all data from stage_incoming where the dstip isn't already in ip_address table
-dst_query = stage_incoming.objects.only('dstipver', 'dstip', 'dstipinternal').exclude(dstip__in=ip_address.objects.only('ip_address').values_list('ip_address', flat=True))
+dst_query = stage_incoming.objects.values('dstipver', 'dstip', 'dstipinternal').distinct().exclude(dstip__in=ip_address.objects.only('ip_address').values_list('ip_address', flat=True))
+
+print("Number of src ip addresses: " + str(src_query.count()) + ".")
+print("Number of dst ip addresses: " + str(dst_query.count()) + ".")
 
 # Create ip_address objects and add them to the arraylist
 ip_addresses = []
-for row in src_query.union(dst_query):
-    ip_addresses.append(ip_address(ip_version=row.srcipver,ip_address=row.srcip,is_local=row.srcipinternal))
-    ip_addresses.append(ip_address(ip_version=row.dstipver,ip_address=row.dstip,is_local=row.dstipinternal))
+if (src_query.union(dst_query).count() > 0):
+    for row in src_query.union(dst_query):
+        ip_addresses.append(ip_address(ip_version=row['srcipver'],ip_address=row['srcip'],is_local=row['srcipinternal']))
 
+print("Number of unique IPs added to ip_address table: " + str(src_query.union(dst_query).count()))
+		
 # Bulk add what we have to the ip_address table
 ip_address.objects.bulk_create(ip_addresses)
-##########
-# PYTHON #
-##########
+##################################
+# PYTHON - LOAD IP_ADDRESS TABLE #
+##################################
+
+cat insert_to_ipaddress.py | python3 manage.py shell
+
+Number of src ip addresses: 2.
+Number of dst ip addresses: 79.
+Number of unique IPs added to ip_address table: 80.
+Updating IP Address Table took: 0:00:00.031227.
