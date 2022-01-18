@@ -310,3 +310,47 @@ Number of src ip addresses: 2.
 Number of dst ip addresses: 79.
 Number of unique IPs added to ip_address table: 80.
 Updating IP Address Table took: 0:00:00.031227.
+
+########################
+# UPDATING CIDR RANGES #
+########################
+# 10.0.* or 127.0.*
+cidr8=ip_address.objects.filter(ip_address__iregex=r'^(10|127)\.0\..+').values('cidr')
+cidr8.update(cidr="8")
+# 172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31).*
+cidr12=ip_address.objects.filter(ip_address__iregex=r'^172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31)\..+').values('cidr')
+cidr12.update(cidr="12")
+# 192.168.* or 169.254.*
+cidr16=ip_address.objects.filter(ip_address__iregex=r'^(192\.168|169\.254)\..+').values('cidr')
+cidr16.update(cidr="16")
+# ::1*
+cidr128=ip_address.objects.filter(ip_address__iregex=r'\:\:1*').values('cidr')
+cidr128.update(cidr="128")
+# fe80::*
+cidr10=ip_address.objects.filter(ip_address__iregex=r'fe80\:\:*').values('cidr')
+cidr10.update(cidr="10")
+# fc80::*
+cidr7=ip_address.objects.filter(ip_address__iregex=r'fc80\:\:*').values('cidr')
+cidr7.update(cidr="7")
+########################
+# UPDATING CIDR RANGES #
+########################
+
+###################################
+# PYTHON - LOAD TRANSACTION TABLE #
+###################################
+
+import datetime
+from netvis.models import Stage_Incoming, Events, IPAddress
+
+start_time = datetime.datetime.now()
+
+join_data = Stage_Incoming.objects.raw('select 1 as id, si."id" as "event_id", ia1."id" as "src_ip_id", ia2."id" as "dst_ip_id", si."date" as "date", si."time" as "time", si."action" as "action", si."protocol" as "protocol", si."srcport" as "srcport", si."dstport" as "dstport", si."path" as "path" from netvis_Stage_Incoming si join netvis_IPAddress ia1 on si."srcip" = ia1."ip_address" and si."srcipver" = ia1."ip_version" and si."srcipinternal" = ia1."is_local" join netvis_IPAddress ia2 on si."dstip" = ia2."ip_address" and si."dstipver" = ia2."ip_version" and si."dstipinternal" = ia2."is_local"')
+
+# Create Events objects and add them to the arraylist
+events = []
+for row in join_data.iterator():
+    events.append(Events(src_ip_id=IPAddress(row.src_ip_id),dst_ip_id=IPAddress(row.dst_ip_id),date=row.date,time=row.time,action=row.action,protocol=row.protocol,srcport=row.srcport,dstport=row.dstport,path=row.path))
+		
+# Bulk add what we have to the ip_address table
+Events.objects.bulk_create(events)
