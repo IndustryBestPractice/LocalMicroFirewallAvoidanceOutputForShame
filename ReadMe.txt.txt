@@ -270,10 +270,13 @@ print("Loading CSV took: " + str(runtime) + ".")
 #####################
 
 ======================================================
-cat insert_to_stage_incoming.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/send_data.csv/g" | python3 manage.py shell
 
-Number of unique entries added to stage_incoming table: 5367.
-Loading CSV took: 0:00:00.938269.
+cat insert_to_stage_incoming.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/send_data.csv/g" | python3 manage.py shell
+sed -i.bak "s/,-/,0/gI" all_data.csv
+cat insert_to_stage_incoming.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/all_data.csv/g" | python3 manage.py shell
+
+Number of entries added to stage_incoming table: 46405.
+Loading CSV took: 0:00:07.621300.
 ======================================================
 
 ##################################
@@ -309,10 +312,10 @@ ip_address.objects.bulk_create(ip_addresses)
 ======================================================
 cat insert_to_ipaddress.py | python3 manage.py shell
 
-Number of src ip addresses: 2.
-Number of dst ip addresses: 79.
-Number of unique IPs added to ip_address table: 80.
-Updating IP Address Table took: 0:00:00.031227.
+Number of src ip addresses: 27.
+Number of dst ip addresses: 81.
+Number of unique IPs added to ip_address table: 103.
+Updating IP Address Table took: 0:00:00.194121.
 ======================================================
 
 ########################
@@ -365,5 +368,5 @@ print("Updating Events table took: " + str(runtime) + ".")
 ======================================================
 cat insert_to_events.py | python3 manage.py shell
 
-Updating Events table took: 0:00:01.102496.
+Updating Events table took: 0:00:08.752905.
 ======================================================
