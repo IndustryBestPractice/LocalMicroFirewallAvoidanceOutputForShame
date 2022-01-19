@@ -1,8 +1,8 @@
 from django.db import models
 
 # Create your models here.
-class ip_address(models.Model):
-    ip_id = models.PositiveIntegerField(primary_key=True)
+class IPAddress(models.Model):
+    #ip_id = models.BigAutoField(primary_key=True)
     ip_version = models.CharField(max_length=4)
     ip_address = models.CharField(max_length=100)
     cidr = models.IntegerField(default=24)
@@ -15,18 +15,20 @@ class ip_address(models.Model):
             models.Index(fields=['ip_address',]),
     ]
 
-class transaction(models.Model):
-    trans_id = models.PositiveIntegerField(primary_key=True)
+class Events(models.Model):
+    #trans_id = models.BigAutoField(primary_key=True)
     #src_ip_id = models.IntegerField(null=True)
-    src_ip_id = models.ForeignKey(ip_address, on_delete=models.CASCADE, related_name='src_ip_id')
+    #src_ip_id = models.OneToOneField(IPAddress, on_delete=models.CASCADE, related_name='src_ip_id')
+    src_ip_id = models.ForeignKey(IPAddress, on_delete=models.CASCADE, related_name='src_ip_id')
     #dst_ip_id = models.IntegerField(null=True)
-    dst_ip_id = models.ForeignKey(ip_address, on_delete=models.CASCADE, related_name='dst_ip_id')
+    #dst_ip_id = models.OneToOneField(IPAddress, on_delete=models.CASCADE, related_name='dst_ip_id')
+    dst_ip_id = models.ForeignKey(IPAddress, on_delete=models.CASCADE, related_name='dst_ip_id')
     date = models.DateField()
     time = models.TimeField()
     action = models.CharField(max_length=100)
     protocol = models.CharField(max_length=100)
-    srcport = models.IntegerField()
-    dstport = models.IntegerField()
+    srcport = models.CharField(max_length=5)
+    dstport = models.CharField(max_length=5)
     path = models.CharField(max_length=100)
 
     class Meta:
@@ -38,7 +40,7 @@ class transaction(models.Model):
             models.Index(fields=['dstport',]),
     ]
 
-class stage_incoming(models.Model):
+class Stage_Incoming(models.Model):
     srcipinternal = models.BooleanField(default=False)
     dstipinternal = models.BooleanField(default=False)
     srcipver = models.CharField(max_length=4)
@@ -49,8 +51,8 @@ class stage_incoming(models.Model):
     protocol = models.CharField(max_length=3)
     srcip = models.CharField(max_length=100)
     dstip = models.CharField(max_length=100)
-    srcport = models.IntegerField()
-    dstport = models.IntegerField()
+    srcport = models.CharField(max_length=5)
+    dstport = models.CharField(max_length=5)
     size = models.IntegerField()
     tcpflags = models.CharField(max_length=100)
     tcpsyn = models.CharField(max_length=100)

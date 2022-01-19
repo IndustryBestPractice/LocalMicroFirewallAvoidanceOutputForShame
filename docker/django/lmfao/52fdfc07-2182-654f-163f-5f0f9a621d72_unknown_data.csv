@@ -1,2 +1,0 @@
-srcipinternal,dstipinternal,srcipver,dstipver,date,time,action,protocol,srcip,dstip,srcport,dstport,size,tcpflags,tcpsyn,tcpack,tcpwin,icmptype,icmpcode,info,path
-0,0,ipv6,ipv6,2020-10-14,08:13:15,INFO-EVENTS-LOST,-,-,-,-,-,-,-,-,-,-,-,-,4,-

@@ -246,7 +246,7 @@ print("Loading CSV took: " + str(runtime) + ".")
 # PYTHON - LOAD_CSV #
 #####################
 import csv, datetime, sys
-from netvis.models import stage_incoming
+from netvis.models import Stage_Incoming
 
 start_time = datetime.datetime.now()
 
@@ -257,9 +257,9 @@ with open(file_path, "r") as csv_file:
     next(data)
     incoming_events = []
     for row in data:
-        event = stage_incoming(srcipinternal=row[0],dstipinternal=row[1],srcipver=row[2],dstipver=row[3],date=row[4],time=row[5],action=row[6],protocol=row[7],srcip=row[8],dstip=row[9],srcport=row[10],dstport=row[11],size=row[12],tcpflags=row[13],tcpsyn=row[14],tcpack=row[15],tcpwin=row[16],icmptype=row[17],icmpcode=row[18],info=row[19],path=row[20])
+        event = Stage_Incoming(srcipinternal=row[0],dstipinternal=row[1],srcipver=row[2],dstipver=row[3],date=row[4],time=row[5],action=row[6],protocol=row[7],srcip=row[8],dstip=row[9],srcport=row[10],dstport=row[11],size=row[12],tcpflags=row[13],tcpsyn=row[14],tcpack=row[15],tcpwin=row[16],icmptype=row[17],icmpcode=row[18],info=row[19],path=row[20])
         incoming_events.append(event)
-    stage_incoming.objects.bulk_create(incoming_events)
+    Stage_Incoming.objects.bulk_create(incoming_events)
 
 end_time = datetime.datetime.now()
 runtime = end_time - start_time
@@ -269,23 +269,25 @@ print("Loading CSV took: " + str(runtime) + ".")
 # PYTHON - LOAD_CSV #
 #####################
 
-cat load_csv.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/send_data.csv/g" | python3 manage.py shell
+======================================================
+cat insert_to_stage_incoming.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/send_data.csv/g" | python3 manage.py shell
 
 Number of unique entries added to stage_incoming table: 5367.
 Loading CSV took: 0:00:00.938269.
+======================================================
 
 ##################################
 # PYTHON - LOAD IP_ADDRESS TABLE #
 ##################################
 import datetime
-from netvis.models import stage_incoming, transaction, ip_address
+from netvis.models import Stage_Incoming, IPAddress
 
 start_time = datetime.datetime.now()
 
 # Get all data from stage_incoming where the srcip isn't already in ip_address table
-src_query = stage_incoming.objects.values('srcipver', 'srcip', 'srcipinternal').distinct().exclude(srcip__in=ip_address.objects.only('ip_address').values_list('ip_address', flat=True))
+src_query = Stage_Incoming.objects.values('srcipver', 'srcip', 'srcipinternal').distinct().exclude(srcip__in=IPAddress.objects.only('ip_address').values_list('ip_address', flat=True))
 # Get all data from stage_incoming where the dstip isn't already in ip_address table
-dst_query = stage_incoming.objects.values('dstipver', 'dstip', 'dstipinternal').distinct().exclude(dstip__in=ip_address.objects.only('ip_address').values_list('ip_address', flat=True))
+dst_query = Stage_Incoming.objects.values('dstipver', 'dstip', 'dstipinternal').distinct().exclude(dstip__in=IPAddress.objects.only('ip_address').values_list('ip_address', flat=True))
 
 print("Number of src ip addresses: " + str(src_query.count()) + ".")
 print("Number of dst ip addresses: " + str(dst_query.count()) + ".")
@@ -294,7 +296,7 @@ print("Number of dst ip addresses: " + str(dst_query.count()) + ".")
 ip_addresses = []
 if (src_query.union(dst_query).count() > 0):
     for row in src_query.union(dst_query):
-        ip_addresses.append(ip_address(ip_version=row['srcipver'],ip_address=row['srcip'],is_local=row['srcipinternal']))
+        ip_addresses.append(IPAddress(ip_version=row['srcipver'],ip_address=row['srcip'],is_local=row['srcipinternal']))
 
 print("Number of unique IPs added to ip_address table: " + str(src_query.union(dst_query).count()))
 		
@@ -304,42 +306,43 @@ ip_address.objects.bulk_create(ip_addresses)
 # PYTHON - LOAD IP_ADDRESS TABLE #
 ##################################
 
+======================================================
 cat insert_to_ipaddress.py | python3 manage.py shell
 
 Number of src ip addresses: 2.
 Number of dst ip addresses: 79.
 Number of unique IPs added to ip_address table: 80.
 Updating IP Address Table took: 0:00:00.031227.
+======================================================
 
 ########################
 # UPDATING CIDR RANGES #
 ########################
 # 10.0.* or 127.0.*
-cidr8=ip_address.objects.filter(ip_address__iregex=r'^(10|127)\.0\..+').values('cidr')
+cidr8=IPAddress.objects.filter(ip_address__iregex=r'^(10|127)\.0\..+').values('cidr')
 cidr8.update(cidr="8")
 # 172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31).*
-cidr12=ip_address.objects.filter(ip_address__iregex=r'^172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31)\..+').values('cidr')
+cidr12=IPAddress.objects.filter(ip_address__iregex=r'^172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31)\..+').values('cidr')
 cidr12.update(cidr="12")
 # 192.168.* or 169.254.*
-cidr16=ip_address.objects.filter(ip_address__iregex=r'^(192\.168|169\.254)\..+').values('cidr')
+cidr16=IPAddress.objects.filter(ip_address__iregex=r'^(192\.168|169\.254)\..+').values('cidr')
 cidr16.update(cidr="16")
 # ::1*
-cidr128=ip_address.objects.filter(ip_address__iregex=r'\:\:1*').values('cidr')
+cidr128=IPAddress.objects.filter(ip_address__iregex=r'\:\:1*').values('cidr')
 cidr128.update(cidr="128")
 # fe80::*
-cidr10=ip_address.objects.filter(ip_address__iregex=r'fe80\:\:*').values('cidr')
+cidr10=IPAddress.objects.filter(ip_address__iregex=r'fe80\:\:*').values('cidr')
 cidr10.update(cidr="10")
 # fc80::*
-cidr7=ip_address.objects.filter(ip_address__iregex=r'fc80\:\:*').values('cidr')
+cidr7=IPAddress.objects.filter(ip_address__iregex=r'fc80\:\:*').values('cidr')
 cidr7.update(cidr="7")
 ########################
 # UPDATING CIDR RANGES #
 ########################
 
-###################################
-# PYTHON - LOAD TRANSACTION TABLE #
-###################################
-
+##############################
+# PYTHON - LOAD EVENTS TABLE #
+##############################
 import datetime
 from netvis.models import Stage_Incoming, Events, IPAddress
 
@@ -354,3 +357,13 @@ for row in join_data.iterator():
 		
 # Bulk add what we have to the ip_address table
 Events.objects.bulk_create(events)
+
+end_time = datetime.datetime.now()
+runtime = end_time - start_time
+print("Updating Events table took: " + str(runtime) + ".")
+
+======================================================
+cat insert_to_events.py | python3 manage.py shell
+
+Updating Events table took: 0:00:01.102496.
+======================================================
