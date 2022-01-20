@@ -3,10 +3,11 @@ from django.db import models
 # Create your models here.
 class IPAddress(models.Model):
     #ip_id = models.BigAutoField(primary_key=True)
-    ip_version = models.CharField(max_length=4)
+    ip_version = models.CharField(default='ipv4', max_length=4)
     ip_address = models.CharField(max_length=100)
     cidr = models.IntegerField(default=24)
     is_local = models.BooleanField(default=True)
+    hostname = models.CharField(max_length=100, blank=True)
 
     class Meta:
         indexes = [

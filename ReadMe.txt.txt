@@ -271,7 +271,7 @@ print("Loading CSV took: " + str(runtime) + ".")
 
 ======================================================
 
-cat insert_to_stage_incoming.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/send_data.csv/g" | python3 manage.py shell
+#cat insert_to_stage_incoming.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/send_data.csv/g" | python3 manage.py shell
 sed -i.bak "s/,-/,0/gI" all_data.csv
 cat insert_to_stage_incoming.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/all_data.csv/g" | python3 manage.py shell
 
@@ -369,4 +369,38 @@ print("Updating Events table took: " + str(runtime) + ".")
 cat insert_to_events.py | python3 manage.py shell
 
 Updating Events table took: 0:00:08.752905.
+======================================================
+
+#############################################
+# PYTHON - UPDATE IPADDRESS HOSTNAME COLUMN #
+#############################################
+import csv, datetime, sys
+from netvis.models import IPAddress
+
+start_time = datetime.datetime.now()
+
+file_path = 'ReplaceMe'
+with open(file_path, "r") as csv_file:
+    data = csv.reader(csv_file, delimiter=",")
+    # Skip the header row
+    next(data)
+    ipaddress_updates = []
+    for row in data:
+        try:
+            ipobj = IPAddress.objects.get(ip_address=row[0])
+            ipobj.hostname=row[1]
+            ipaddress_updates.append(ipobj)
+        except:
+            print("Error when processing IPAddress: " + str(row[0]))
+    IPAddress.objects.bulk_update(ipaddress_updates, ['hostname'])
+
+end_time = datetime.datetime.now()
+runtime = end_time - start_time
+#https://betterprogramming.pub/3-techniques-for-importing-large-csv-files-into-a-d
+print("Loading CSV took: " + str(runtime) + ".")
+
+======================================================
+cat update_ipaddress_hostnames.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/hostnames.csv/g" | python3 manage.py shell
+
+Loading CSV took: 0:00:00.008272.
 ======================================================
