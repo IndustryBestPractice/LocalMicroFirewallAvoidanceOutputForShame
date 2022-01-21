@@ -13,14 +13,7 @@
       src="{% static 'netvis/vis-network.min.js' %}"
     ></script>
 
-    <!--- <script src="{% static 'netvis/datasource.js' %}"></script> --->
-    <script>
-    var nodes = [
-    {% for row in nodes %}
-        {id: '{{ row.id }}',label: '{{ row.ip_address }}',group: '{{ row.cidr }}'},
-    {% endfor %}
-    ]
-    </script>
+    <script src="{% static 'netvis/datasource.js' %}"></script>
 
     <style type="text/css">
       #mynetwork {

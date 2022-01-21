@@ -404,3 +404,10 @@ cat update_ipaddress_hostnames.py | sed -e "s/ReplaceMe/\/usr\/src\/lmfao\/hostn
 
 Loading CSV took: 0:00:00.008272.
 ======================================================
+
+======================================================
+# To get the column names from the database in case we forget them
+test = Events.objects.raw('select 1 as id, name from pragma_table_info("netvis_Events")')
+for row in test.iterator():
+    row.name
+======================================================

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF8" />
+    <title>
+      Vis Network | Example Applications | Neighbourhood Highlighting
+    </title>
+
+    <script
+      type="text/javascript"
+      src="{% static 'netvis/vis-network.min.js' %}"
+    ></script>
+
+    <!--- <script src="{% static 'netvis/datasource.js' %}"></script> --->
+    <style type="text/css">
+      #mynetwork {
+        width: 800px;
+        height: 800px;
+        border: 1px solid lightgray;
+      }
+    </style>
+  </head>
+
+  <body>
+    var nodes = [
+    {% for row in nodes %}
+        thing is = {{ row.ip_address }}
+    {% endfor %}
+    ]
+  </body>
+</html>
