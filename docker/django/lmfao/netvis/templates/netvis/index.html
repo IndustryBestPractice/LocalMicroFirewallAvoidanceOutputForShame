@@ -16,10 +16,36 @@
     <!--- <script src="{% static 'netvis/datasource.js' %}"></script> --->
     <script>
     var nodes = [
-    {% for row in nodes %}
-        {id: '{{ row.id }}',label: '{{ row.ip_address }}',group: '{{ row.cidr }}'},
+    {% for node in nodes %}
+        {
+            id: {{ node.id }},
+            title: "{{ node.hostname }}",
+            label: "{{ node.ip_address }}",
+            group: {{ node.cidr }},
+        },
     {% endfor %}
-    ]
+    ];
+    var edges = [
+    {% for edge in edges %}
+        { 
+            from: {{ edge.src_ip_id }},
+            to: {{ edge.dst_ip_id }}, 
+            arrows: "to", 
+            dashes: false, 
+            background: {
+                            enabled: true, 
+                            {% if edge.action == "ALLOW" %}
+                            color: "green", 
+                            {% elif edge.action == "DROP" %}
+                            color: "red",
+                            {% else %}
+                            color: "grey",
+                            {% endif %}
+                            size: {{ edge.total }},
+                        }, 
+        },
+    {% endfor %}
+    ];
     </script>
 
     <style type="text/css">
@@ -77,6 +103,7 @@
           edges: {
             width: 0.15,
             color: { inherit: "from" },
+            length: 100,
             smooth: {
               type: "continuous",
             },

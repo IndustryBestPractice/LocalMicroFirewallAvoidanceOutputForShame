@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.views.generic import RedirectView
 from django.template import loader
+from django.db.models import Count
 
 from .models import Events,IPAddress
 
@@ -35,9 +36,16 @@ def index(request):
                 # Get the IPAddress data for each ip_id in Events table
                 #nodes = IPAddress.objects.filter(id__in=node_ids).values_list('id','ip_address','cidr','hostname')
                 nodes = IPAddress.objects.filter(id__in=node_ids).values('id','ip_address','cidr','hostname')
+                #edges = Events.objects.filter(date='2020-10-14').values('src_ip_id','dst_ip_id','action')
+                edges = Events.objects.filter(date='2020-10-14').values('src_ip_id','dst_ip_id','action').annotate(total=Count('id'))
+                for edge in edges:
+                    edge['total'] = int(edge['total'] * .1)
+                    if edge['total'] > 100:
+                        edge['total'] = 100
                 # Create context to send to the template
                 context = {
-                    'nodes': nodes
+                    'nodes': nodes,
+                    'edges': edges,
                 }
                 #return HttpResponse(template.render(context, request))
                 return render(request, 'netvis/index.html', context)
