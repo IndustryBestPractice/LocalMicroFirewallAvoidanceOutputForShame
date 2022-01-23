@@ -37,11 +37,11 @@ def index(request):
                 #nodes = IPAddress.objects.filter(id__in=node_ids).values_list('id','ip_address','cidr','hostname')
                 nodes = IPAddress.objects.filter(id__in=node_ids).values('id','ip_address','cidr','hostname')
                 #edges = Events.objects.filter(date='2020-10-14').values('src_ip_id','dst_ip_id','action')
-                edges = Events.objects.filter(date='2020-10-14').values('src_ip_id','dst_ip_id','action').annotate(total=Count('id'))
-                for edge in edges:
-                    edge['total'] = int(edge['total'] * .1)
-                    if edge['total'] > 100:
-                        edge['total'] = 100
+                edges = Events.objects.filter(date='2020-10-14').values('src_ip_id','dst_ip_id','dstport','action').annotate(total=Count('id'))
+                #for edge in edges:
+                #    edge['total'] = int(edge['total'] * .1)
+                #    if edge['total'] > 100:
+                #        edge['total'] = 100
                 # Create context to send to the template
                 context = {
                     'nodes': nodes,

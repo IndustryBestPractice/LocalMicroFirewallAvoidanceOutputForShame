@@ -19,7 +19,7 @@
     {% for node in nodes %}
         {
             id: {{ node.id }},
-            title: "{{ node.hostname }}",
+            title: "Hostname: {{ node.hostname }}\IPAddress: {{ node.ip_address }}\nCIDR: {{ node.cidr }}",
             label: "{{ node.ip_address }}",
             group: {{ node.cidr }},
         },
@@ -30,6 +30,7 @@
         { 
             from: {{ edge.src_ip_id }},
             to: {{ edge.dst_ip_id }}, 
+            title: "DSTPORT: {{ edge.dstport }}\nCount: {{ edge.total }}",
             arrows: "to", 
             dashes: false, 
             background: {
@@ -41,7 +42,8 @@
                             {% else %}
                             color: "grey",
                             {% endif %}
-                            size: {{ edge.total }},
+                            //size: {{ edge.total }},
+                            size: 1
                         }, 
         },
     {% endfor %}
