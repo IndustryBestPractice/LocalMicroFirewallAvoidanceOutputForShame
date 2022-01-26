@@ -19,7 +19,7 @@
     {% for node in nodes %}
         {
             id: {{ node.id }},
-            title: "Hostname: {{ node.hostname }}\IPAddress: {{ node.ip_address }}\nCIDR: {{ node.cidr }}",
+            title: "Hostname: {{ node.hostname }}\nIPAddress: {{ node.ip_address }}\nCIDR: {{ node.cidr }}",
             label: "{{ node.ip_address }}",
             group: {{ node.cidr }},
         },
@@ -30,7 +30,7 @@
         { 
             from: {{ edge.src_ip_id }},
             to: {{ edge.dst_ip_id }}, 
-            title: "DSTPORT: {{ edge.dstport }}\nCount: {{ edge.total }}",
+            title: "DSTPORT: {{ edge.dstport }}\nHit Count: {{ edge.total }}",
             arrows: "to", 
             dashes: false, 
             background: {
@@ -69,12 +69,13 @@
       based on whether or not they are connected to the selected node. The code
       doing the highlighting only takes about 1ms, the rest of the time is the
       redrawing of the network (9200 edges..).
+      Number of visits: {{ num_visits }}
       <br /><br />
     </div>
 
     <div id="mynetwork"></div>
 
-    <script type="text/javascript">
+    <script id="mynetworkscript" type="text/javascript">
       var network;
       var allNodes;
       var highlightActive = false;
@@ -105,12 +106,16 @@
           edges: {
             width: 0.15,
             color: { inherit: "from" },
-            length: 100,
+            length: 300,
             smooth: {
               type: "continuous",
             },
           },
-          physics: false,
+          //{% if num_visits == "0" %}
+          physics: true,
+          //{% else %}
+          //physics: false,
+          //{% endif %}
           interaction: {
             tooltipDelay: 200,
             hideEdgesOnDrag: true,

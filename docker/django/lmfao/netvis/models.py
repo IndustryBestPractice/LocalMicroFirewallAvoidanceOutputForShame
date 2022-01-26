@@ -8,12 +8,14 @@ class IPAddress(models.Model):
     cidr = models.IntegerField(default=24)
     is_local = models.BooleanField(default=True)
     hostname = models.CharField(max_length=100, blank=True)
+    subnet_name = models.CharField(max_length=100, blank=True)
 
     class Meta:
         indexes = [
             models.Index(fields=['ip_version','ip_address','is_local',]),
             models.Index(fields=['cidr',]),
             models.Index(fields=['ip_address',]),
+            models.Index(fields=['subnet_name',]),
     ]
 
 class Events(models.Model):

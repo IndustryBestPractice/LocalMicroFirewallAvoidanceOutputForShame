@@ -6,6 +6,8 @@ from django.db.models import Count
 
 from .models import Events,IPAddress
 
+import datetime
+
 # Create your views here.
 def index(request):
 	if request.user.is_authenticated:
@@ -34,23 +36,31 @@ def index(request):
                 for row in union_query:
                     node_ids.append(row['src_ip_id'])
                 # Get the IPAddress data for each ip_id in Events table
-                #nodes = IPAddress.objects.filter(id__in=node_ids).values_list('id','ip_address','cidr','hostname')
                 nodes = IPAddress.objects.filter(id__in=node_ids).values('id','ip_address','cidr','hostname')
-                #edges = Events.objects.filter(date='2020-10-14').values('src_ip_id','dst_ip_id','action')
                 edges = Events.objects.filter(date='2020-10-14').values('src_ip_id','dst_ip_id','dstport','action').annotate(total=Count('id'))
-                #for edge in edges:
-                #    edge['total'] = int(edge['total'] * .1)
-                #    if edge['total'] > 100:
-                #        edge['total'] = 100
+                # COOKIES AND STUFF!
+                #last_visit = request.session.get('last_page_visit', str(datetime.datetime.now()))
+                num_visits = request.session.get('num_visits', "0")
+                num_visits_pass = int(num_visits)
+                #print("Number of page visits Before: " + str(num_visits))
+                num_visits = int(num_visits) + 1
+                #print("Number of page visits After: " + str(num_visits))
+                request.session['num_visits'] = str(num_visits)
+                #print(str(request.session['num_visits']))
+                #print(str(request.session.get('last_visit')))
                 # Create context to send to the template
                 context = {
                     'nodes': nodes,
                     'edges': edges,
+                    'num_visits': str(num_visits_pass),
                 }
-                #return HttpResponse(template.render(context, request))
-                return render(request, 'netvis/index.html', context)
+                response = HttpResponse("")
+                response.set_cookie("num_visits", num_visits_pass)
+                template = loader.get_template('netvis/index.html')
+                return HttpResponse(template.render(context, request))
+                #return render(request, 'netvis/index.html', context)
             else:
-                return HttpResponse("Hello world, from netvis app!")
+                response = HttpResponse("Hello world, from netvis app!")
                 Event_List = Events.objects.all()
                 Event_List = Events.objects.raw('select * from Events')
                 template = loader.get_template('netvis/index.html')

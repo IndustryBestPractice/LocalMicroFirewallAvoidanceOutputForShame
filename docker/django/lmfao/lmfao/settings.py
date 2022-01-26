@@ -53,6 +53,13 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'lmfao.urls'
 
+# Using signed cookies because we're not storing a ton of data in cookies
+#SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+# Max cookie age is 1 day, in seconds
+#SESSION_COOKIE_AGE = 86400
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_SECURE = False
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
