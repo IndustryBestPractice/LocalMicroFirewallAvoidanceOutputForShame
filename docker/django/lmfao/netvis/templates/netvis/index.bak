@@ -89,21 +89,7 @@
       based on whether or not they are connected to the selected node. The code
       doing the highlighting only takes about 1ms, the rest of the time is the
       redrawing of the network (9200 edges..).
-      <br /><br />
       Number of visits: {{ num_visits }}
-      <br /><br />
-      <form action="{% url 'index' %}" method="post">
-      {% csrf_token %}
-      <fieldset>
-          <legend><h1>test button</h1></legend>
-              <select name="datechoice" id="date" multiple>
-              {% for date in dates %}
-              <option value="{{date.date}}">{{date.date}}</option>
-              {% endfor %}
-              <label for="date">Select date(s) to display:</label><br>
-      </fieldset>
-      <input type="submit" value="Test">
-      </form>
       <br /><br />
     </div>
 
