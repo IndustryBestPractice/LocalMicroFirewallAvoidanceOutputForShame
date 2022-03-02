@@ -94,15 +94,8 @@
       <br /><br />
       <form action="{% url 'index' %}" method="post">
       {% csrf_token %}
-      <fieldset>
-          <legend><h1>test button</h1></legend>
-              <select name="datechoice" id="date" multiple>
-              {% for date in dates %}
-              <option value="{{date.date}}">{{date.date}}</option>
-              {% endfor %}
-              <label for="date">Select date(s) to display:</label><br>
-      </fieldset>
-      <input type="submit" value="Test">
+      {{ form }}
+      <input type="submit" value="Test Booton">
       </form>
       <br /><br />
     </div>
