@@ -16,6 +16,8 @@ def index(request):
 	if request.user.is_authenticated:
             if request.method == "POST":
                 form = NetVisFilters(request.POST or None)
+                if form.is_valid():
+                    print(form.cleaned_data['date_choice'])
                 #choice_list = []
                 #for choice in request.POST['datechoice']:
                 #    print(choice)
